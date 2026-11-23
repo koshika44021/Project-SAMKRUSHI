@@ -5,13 +5,30 @@
 Application: iOS customer application\
 Monorepo location: `apps/mobile`\
 Technology: Expo + React Native + TypeScript\
-Version: 1.0\
+Version: 1.1 (amended 2026-11-23)\
 Target market: Hyderabad, Telangana, India\
-Depends on: `SAMKRUSHI_MASTER_MONOREPO_SPEC.md`
+Depends on: `docs/specs/SAMKRUSHI_MASTER_MONOREPO_SPEC.md` (governs; ADR-0001)
+
+## Amendments v1.1 — 2026-11-23
+
+Founder-approved decisions of 2026-11-23 (see `docs/business-decisions.md`) were applied in place:
+
+| Change | Sections | ADR |
+|---|---|---|
+| Release 1 targets Android first. The iOS build configuration is maintained and CI-built from master Phase 1, and the **iOS App Store release follows the Android release**. iOS keeps full feature parity | §1, §11, §12, §13 | ADR-0009 |
+| Payments use Razorpay Hosted/Standard Checkout through `expo-web-browser` first. The native SDK may come later; hosted stays as the fallback. No Apple IAP for produce | §5.13, §6.6, §6.8, §7.3 | ADR-0008 |
+| Server quote (`get-checkout-quote`) before order creation | §5.12 | ADR-0003 |
+| Catalog availability is status + `maxOrderable` packs, never raw supply | §5.3, §5.6 | ADR-0003, ADR-0007 |
+| New delivery-OTP display screen (master Phase 7) | §2.1, §5.21 | — |
+| Refund states include `manual_review`. Timeline renders terminal/exception states | §5.16, §5.17 | — |
+| Substitution option set is still an open founder decision | §5.18 | — |
+| Address `locality`; lat/long optional and consent-gated; `save-address` serviceability check | §5.9 | — |
+| Pending checkout recovery, guest cart revalidation, chunked/encrypted Keychain session storage | §5.7, §5.13, §6.7 | — |
+| Implementation sequence mapped to master phases | §11 | ADR-0001 |
 
 ## 1. Purpose and architecture
 
-The Samkrushi iOS application is the iOS release of the shared customer mobile application.
+The Samkrushi iOS application is the iOS release of the shared customer mobile application. Release 1 targets Android. The iOS build configuration is maintained in parallel from master Phase 1, and the iOS App Store release follows the Android release (ADR-0009).
 
 It provides the same customer-facing functionality as Android:
 
@@ -50,7 +67,7 @@ The platform-specific differences belong in navigation behavior, native integrat
 10. Profile and addresses.
 11. Delivery-slot selection.
 12. Checkout review.
-13. Razorpay online payment.
+13. Razorpay online payment (Hosted/Standard Checkout, ADR-0008).
 14. Cash on Delivery when enabled by the backend.
 15. Order confirmation.
 16. Order history.
@@ -60,6 +77,9 @@ The platform-specific differences belong in navigation behavior, native integrat
 20. Customer support.
 21. Push notifications.
 22. Account deletion request.
+23. Delivery OTP display for proof of delivery (§5.21; master Phase 7).
+
+"First release" here means the first iOS store release, which follows the Android release 1 with the same feature set.
 
 ### 2.2 Deferred features
 
@@ -149,8 +169,9 @@ Purpose: initialize the app and restore a customer session.
 Requirements:
 
 - Display approved Samkrushi logo.
-- Restore authentication securely.
-- Load application configuration.
+- Restore authentication securely (chunked/encrypted Keychain-backed storage; §6.7, master §13.5).
+- Load application configuration (`get-app-config`: customer-safe settings, support contacts, policy links, feature flags, minimum supported app version).
+- Check for a persisted pending checkout and reconcile it (§5.13, master §13.3).
 - Restore previously selected PIN/address context.
 - Handle offline/network failure states.
 - Allow browsing without login.
@@ -192,9 +213,9 @@ Product cards must show:
 - Pack size.
 - Unit.
 - Price.
-- Availability status.
+- Availability status (`available`, `limited` or `unavailable`, mapped to display labels).
 
-All product information comes from the backend.
+All product information comes from the backend (`get-catalog` Edge Function). It returns status and a server-computed `maxOrderable` pack count per SKU from the shared availability function. Raw farmer-supply quantities are never returned or derived. Quantities are decimal strings, and prices are integer paise (ADR-0003).
 
 Do not display procurement cost, private supplier information or internal operational notes.
 
@@ -220,7 +241,7 @@ Provide search by product/category name.
 
 Requirements:
 
-- Debounced search requests.
+- Debounced search requests (`get-catalog` with a `q` parameter; server-side matching).
 - Cancel or ignore stale search requests.
 - Search result list.
 - Clear action.
@@ -238,9 +259,9 @@ Display:
 - Fixed-pack SKU options.
 - Price.
 - Unit.
-- Business-date availability.
+- Business-date availability per SKU (status + `maxOrderable`, from `get-product-detail`).
 
-Customers choose a pack and quantity.
+Customers choose a pack and quantity. Quantity controls follow the SKU's min/max/step (in packs) and never exceed `maxOrderable`. Each SKU is a fixed pack of the product's base unit, and all SKUs of a product share one availability pool (ADR-0006).
 
 Example display:
 
@@ -272,11 +293,11 @@ Requirements:
 - Guest users can use the cart.
 - Cart is not a reservation.
 - Checkout revalidates stock, SKU and price.
-- Stale cart items receive clear error messages.
+- Stale cart items receive clear error messages. After login, and before the quote, every line is revalidated. Lines are flagged, never silently dropped or changed (master §13.4).
 
 ### 5.8 Authentication
 
-Use the configured Supabase Auth flow.
+Use the configured Supabase Auth flow. The customer authentication method is an open founder decision (master Phase 5). Phone OTP needs a paid SMS provider and India DLT registration. Any third-party social login would trigger the Sign in with Apple requirement. Customer sign-up never grants staff access (ADR-0005).
 
 If phone OTP is selected:
 
@@ -305,9 +326,9 @@ Address fields:
 - Address label.
 - Default-address flag.
 
-Customer can create, update and delete their own addresses where business rules allow.
+Customer can create, update and delete their own addresses where business rules allow. Delete is a soft archive (`archive-address`). Orders keep their address snapshot, and the rule for addresses on active orders is a founder decision.
 
-Backend must verify ownership and serviceability.
+Backend must verify ownership and serviceability. `save-address` (Edge Function) creates, updates and sets the default, and runs the server serviceability check. The address list is read RLS-direct. Latitude/longitude stay empty unless an approved feature needs them and the customer consents.
 
 ### 5.10 Checkout — address
 
@@ -356,26 +377,28 @@ Display:
 - Substitution preference.
 - Cancellation/refund and delivery information.
 
-All final amounts are backend-calculated. The app must not independently calculate an authoritative amount.
+All final amounts are backend-calculated. The app must not independently calculate an authoritative amount. The review screen renders `get-checkout-quote` (lines, subtotal, discounts, delivery fee, taxes, total, COD eligibility, availability/slot issues, quote reference). The quote reserves nothing. If the quote, or a quote-changed error from `create-order`, reports changes, explain them and ask the customer to review again.
 
 ### 5.13 Payment
 
 Online payment flow:
 
-1. App submits order intent with cart lines, address, slot, payment method, preferences and idempotency key.
+1. App persists the idempotency key and quote reference locally, then submits the order intent (cart lines, address, slot, payment method, preferences, quote reference, idempotency key) to `create-order`.
 2. Server validates the order.
 3. Server reserves stock and slot transactionally.
 4. Server creates internal order.
-5. Server creates Razorpay order.
-6. App opens the approved Razorpay iOS checkout integration.
-7. Provider returns control to app.
-8. App queries backend.
-9. Backend verifies provider webhook and captured payment.
-10. App displays authoritative payment/order state.
+5. Server creates the Razorpay order and returns a short-lived hosted-checkout session.
+6. App opens the hosted payment page (Razorpay Hosted/Standard Checkout, release 1 path, ADR-0008) through `expo-web-browser` (an authentication session / Safari view controller).
+7. The page redirects to the app's return link (Universal Link, with a custom-scheme fallback), or the customer dismisses the browser. Either way, control returns to the app with no authority over payment state.
+8. App queries backend (`get-order-status`).
+9. Backend verifies the provider webhook and captured payment, or resolves it through server-side provider reconciliation.
+10. App displays authoritative payment/order state. While the reservation is active, a pending order can reopen payment through `resume-payment`. This never creates a new order.
+
+The native `react-native-razorpay` SDK is a possible later enhancement behind a server-controlled checkout-mode flag. Hosted Checkout remains the permanent fallback.
 
 Do not treat client callback as proof of payment.
 
-If app is suspended, terminated or loses network during payment, restore the pending order and reconcile with backend. Do not create another order automatically.
+If app is suspended, terminated or loses network during payment, restore the pending order and reconcile with backend. Do not create another order automatically. The persisted pending-checkout record (`idempotencyKey`, `quoteReference`, `orderId`, `sessionExpiresAt`; no payment data) is reconciled on launch and resume (master §13.3).
 
 COD:
 
@@ -406,7 +429,7 @@ Categories:
 - Completed.
 - Cancelled.
 
-Each order card should include order number, date, amount and state.
+Each order card should include order number, date, amount and state. The list is read RLS-direct from the customer's own order-summary view.
 
 ### 5.16 Order details and tracking
 
@@ -428,17 +451,17 @@ Out for delivery
 Delivered
 ```
 
-The initial release can use status milestones instead of live GPS.
+The initial release can use status milestones instead of live GPS. `get-order-status` derives the timeline on the server from order, payment and fulfilment history. The UI must also render `cancelled`, `delivery_failed`, `returned` and refund states.
 
 ### 5.17 Cancellation and refunds
 
 Requirements:
 
-- Display eligible cancellation action.
+- Display eligible cancellation action (`cancellationEligibility` from `get-order-status`, computed on the server).
 - Collect reason.
-- Submit cancellation request to backend.
+- Submit cancellation request to backend (`request-order-cancellation`).
 - Display whether it needs staff approval.
-- Show refund status separately.
+- Show refund status separately. Backend `refund_status` values are `requested`, `pending` (processing), `processed` (refunded), `failed`, `cancelled` and `manual_review`, with the display mapping in `packages/shared`.
 - Do not call refund complete before payment provider confirmation.
 
 ### 5.18 Substitution
@@ -450,6 +473,8 @@ Possible preference options:
 - Do not substitute.
 - Allow approved replacement.
 - Contact customer before substitution, if supported.
+
+The option set is an **open founder decision**, because "allow similar" and "approved replacement" carry different consent semantics. Render only the options the backend enables. The dev default enables only `no_substitution`.
 
 Do not silently substitute. Any replacement with a different paid amount must use an approved payment/refund process.
 
@@ -466,6 +491,8 @@ Support features:
 - Ticket status.
 - Customer-visible replies.
 
+Transports: `create-support-ticket` and `add-support-message` (Edge Functions; ownership checks and rate limits); attachments through `create-upload-url` to private storage; list/detail and public replies read RLS-direct from a customer view.
+
 Internal staff notes must remain private.
 
 ### 5.20 Account deletion
@@ -479,6 +506,16 @@ Requirements:
 - Show request status.
 - Follow approved retention/anonymization process.
 - Explain that certain records may require retention only using founder/legal-approved wording.
+- Uses `request-account-deletion`. The public web page `/delete-account` is the fallback that store review requires (master §13.8).
+
+### 5.21 Delivery OTP display (master Phase 7)
+
+- On an owned order in an eligible delivery state, order details offers "Show delivery code" through `get-delivery-otp`. The server issues a single-use code, stores only its hash, and returns the plaintext only to the authenticated owner.
+- Display the code large, VoiceOver-readable and Dynamic Type-safe, with an instruction to share it only with the assigned rider at handover.
+- Re-requesting is rate-limited and invalidates the previous code.
+- Never include the code in push notifications, lock-screen text, logs or analytics. Do not cache it beyond the screen session.
+- Refresh order state from `get-order-status` after delivery.
+- Additional channels and the code length/expiry are founder decisions held as server settings.
 
 ## 6. iOS-specific design and technical requirements
 
@@ -535,9 +572,10 @@ Potential events:
 
 Requirements:
 
-- Store push token and platform.
+- Store push token and platform (`register-push-token`).
 - Handle token refresh.
-- Remove invalid or revoked tokens.
+- Remove invalid or revoked tokens (`revoke-push-token` on logout or permission loss).
+- Never include delivery OTPs or sensitive details in payloads.
 - Deep-link notification tap to the relevant order.
 - Restore authentication before showing protected order content.
 - Always retrieve latest server state after opening.
@@ -546,7 +584,7 @@ Push notifications are not the system of record.
 
 ### 6.5 Universal Links
 
-Configure verified iOS Universal Links for the approved Samkrushi domain.
+Configure verified iOS Universal Links for the approved Samkrushi domain (`apple-app-site-association` hosted there; the domain is a founder decision). Keep a custom-scheme fallback for the hosted-checkout return.
 
 Potential uses:
 
@@ -574,13 +612,13 @@ Requirements:
 - Handle duplicate callback.
 - Handle delayed webhook.
 - Do not create duplicate orders.
-- Do not assume payment failed when app closes.
+- Do not assume payment failed when app closes or the browser sheet is dismissed.
 
-Check compatibility between the chosen Expo SDK, iOS deployment target and Razorpay integration before committing to implementation.
+Release 1 uses Hosted/Standard Checkout through `expo-web-browser`, which needs no native payment module (ADR-0008). Before adopting the native Razorpay SDK later, check compatibility between the chosen Expo SDK, iOS deployment target and that SDK.
 
 ### 6.7 Secure storage
 
-Use an approved, maintained Expo-compatible Keychain-backed secure-storage solution for sensitive session material, subject to Supabase SDK requirements.
+Use an approved, maintained Expo-compatible Keychain-backed secure-storage solution for sensitive session material, subject to Supabase SDK requirements. Supabase sessions may exceed secure-store value-size limits. Use a chunked or encrypted large-session adapter: the key lives in the Keychain, and the ciphertext lives in app storage (master §13.5).
 
 Never store:
 
@@ -596,7 +634,7 @@ Never log sensitive authentication material.
 
 Samkrushi sells physical produce and delivery.
 
-Use the approved payment provider for those physical goods. Do not implement Apple In-App Purchase as the payment mechanism for produce orders.
+Use the approved payment provider for those physical goods (Razorpay Hosted/Standard Checkout, ADR-0008). Do not implement Apple In-App Purchase as the payment mechanism for produce orders.
 
 Verify the current App Store payment and review rules before submission.
 
@@ -655,9 +693,9 @@ Client owns:
 | Validation       | Zod                              |
 | Forms            | React Hook Form                  |
 | Authentication   | Supabase Auth                    |
-| Secure storage   | Keychain-backed platform storage |
+| Secure storage   | Keychain-backed `expo-secure-store` with a chunked/encrypted large-session adapter |
 | Notifications    | Expo Notifications               |
-| Payment          | Razorpay                         |
+| Payment          | Razorpay Hosted/Standard Checkout through `expo-web-browser` (ADR-0008); native SDK later |
 
 ### 7.4 Offline behavior
 
@@ -720,34 +758,43 @@ Do not state that the order failed merely because the app lost connection.
 18. VoiceOver and Dynamic Type pass.
 19. Safe areas, keyboard and swipe-back behavior pass.
 20. Permission and privacy disclosures match the actual application behavior.
+21. Review totals come from `get-checkout-quote`. A changed quote is re-reviewed before ordering.
+22. Hosted-checkout return or dismissal never marks an order paid or failed; only server state does.
+23. The delivery OTP is visible only to the order owner, never in notifications.
+24. Catalog shows availability status and `maxOrderable` only, never raw supply quantities.
 
 ## 11. iOS implementation sequence
 
-| Phase | Work                                               |
-| ----- | -------------------------------------------------- |
-| 1     | Shared Expo foundation and iOS build configuration |
-| 2     | Authentication and session restore                 |
-| 3     | Serviceability and catalog                         |
-| 4     | Search, categories and product details             |
-| 5     | Cart and persistence                               |
-| 6     | Profile and address management                     |
-| 7     | Delivery slots and checkout                        |
-| 8     | Razorpay/COD                                       |
-| 9     | Order confirmation, history and tracking           |
-| 10    | Support, cancellation and account deletion         |
-| 11    | Push notifications and Universal Links             |
-| 12    | iOS accessibility, security and release validation |
+These are sub-steps, not a separate phase numbering. Master phases govern (ADR-0001). Each iOS step ships from the same code as its Android counterpart and is verified on iOS builds in CI and on simulators or devices. Only the App Store submission waits for the Android release.
+
+| Step | Work                                               | Master phase |
+| ---- | -------------------------------------------------- | ------------ |
+| 1    | Shared Expo foundation and iOS build configuration | 1            |
+| 2    | Authentication and session restore                 | 5            |
+| 3    | Serviceability and catalog                         | 5            |
+| 4    | Search, categories and product details             | 5            |
+| 5    | Cart and persistence                               | 5            |
+| 6    | Profile and address management                     | 5            |
+| 7    | Delivery slots and checkout (quote)                | 5 (slots), 6 |
+| 8    | Razorpay Hosted Checkout/COD and pending checkout recovery | 6    |
+| 9    | Order confirmation, history and tracking           | 6, 8         |
+| 9a   | Delivery OTP display                               | 7            |
+| 10   | Support, cancellation and account deletion         | 8            |
+| 11   | Push notifications and Universal Links             | 9            |
+| 12   | iOS accessibility, security and release validation | 9 (store release after Android release 1) |
 
 The Android and iOS builds must reuse the same application logic and shared API contracts.
 
 ## 12. App Store release checklist
+
+App Store submission follows the Android release 1 (ADR-0009). The iOS release configuration (bundle identifier variants in `app.config.ts`, EAS build/submit profiles, APNs key, associated domains) is maintained from master Phase 1. Apple Developer account ownership and signing custody are founder decisions.
 
 Before submitting:
 
 - Confirm bundle identifier.
 - Confirm approved app name and branding.
 - Prepare app icons and launch assets.
-- Verify current Expo/React Native/Razorpay compatibility.
+- Verify current Expo/React Native/`expo-web-browser` compatibility, and the Razorpay native SDK too if it has been adopted.
 - Configure Apple Developer signing and provisioning securely.
 - Configure Universal Links.
 - Test TestFlight build on physical iPhones.
@@ -762,7 +809,7 @@ Before submitting:
 
 ## 13. Definition of done
 
-The iOS app is ready for pilot release when:
+The iOS app is ready for its pilot store release, which follows the Android release 1, when:
 
 - Every launch customer journey works.
 - Mobile logic is shared with Android.

@@ -1,5 +1,34 @@
 # SAMKRUSHI --- Farmer & Product Availability Admin Dashboard
 
+> **Status: source reference (superseded where it conflicts).** Amended 2026-11-23 (v1.1 annotations only; the v1.0 text below is unchanged apart from the inserted "Superseded (v1.1)" callouts).
+> Governing order (ADR-0001): `docs/specs/SAMKRUSHI_MASTER_MONOREPO_SPEC.md` v1.1 → `SAMKRUSHI_WEB_ADMIN_SPEC.md` / `SAMKRUSHI_ANDROID_APP_SPEC.md` / `SAMKRUSHI_IOS_APP_SPEC.md` → accepted ADRs in `docs/adr/`. This document applies **only where those are silent**. Its phase numbering and prompts must not be executed literally.
+> Line numbers below refer to the original v1.0 text (before this block and the callouts were inserted).
+
+| # | Superseded item (v1.0 location) | Replaced by |
+|---|---|---|
+| 1 | "Treat this file as the MVP functional source of truth" — §17 L935 | Master §0; ADR-0001 |
+| 2 | Roles `ADMIN` / `OPERATIONS` / `VIEWER` as a single stored role — §2 L84–96, §5.1 L355, §16 L885 | `super_admin` / `operations_admin` / `viewer` in `user_roles` (multi-role, `UNIQUE(user_id, role)`). ADR-0005 |
+| 3 | Audit history "Optional" for OPERATIONS — §2 L117 | super_admin only. A later scoped view is possible only as an explicit permission. ADR-0005 |
+| 4 | Login by email/username with app-managed Argon2id/bcrypt hashing — §2 L101–108, §3.1 L135 | Supabase Auth email+password with `@supabase/ssr` cookies. Username only if founders require it. ADR-0005 |
+| 5 | `staff_users` with `password_hash` — §5.1 L349–358 | `staff_profiles` (full_name, is_active, last_login_at …) + `user_roles` over `auth.users`; first super_admin via one-time env-driven bootstrap script. ADR-0005 |
+| 6 | Separate `farmers` table — §5.2 L360–375 | `suppliers` (`supplier_type = farmer`) + 1:1 `farmer_profiles` holding these fields. ADR-0004 |
+| 7 | Farmer "Status: system-managed; active on creation" / "Save active farmer" — §3.4 L199, L214 | Verification state (`pending_verification`, `active`, `suspended`, `inactive`). Active-on-creation is a dev default pending founder confirmation. ADR-0004 |
+| 8 | Uppercase stored enums and API values (`ADMIN`, `ACRE`/`HECTARE`, `ACTIVE`/`INACTIVE`, `KG`/`G`/`PIECE`/`BUNCH`, `ACTIVE`/`INACTIVE`/`EXPIRED`, `"KG"`, `"AVAILABLE"`) — L355, L369, L373, L393, L410, L568–570 | Lowercase snake_case, both stored and in APIs. Display codes are mapped at the boundary. Master §5; ADR-0003 |
+| 9 | Product = one base-unit item with a single `sku` — §4.1 L290–294, §5.4 L384–398 | `products` (base unit, precision, low-supply threshold) + `product_skus` (pack in base unit, price, min/max/step). ADR-0006 |
+| 10 | Supply quantity "required positive" vs "non-negative" vs "update to zero" — §3.6 L238, §3.7 L262, §5.5 L408 | DB `CHECK (>= 0)`; create requires `> 0`; update to `0` only with a reason; zero rows excluded. Master §4.2 |
+| 11 | Stored `EXPIRED` supply status — §5.5 L410 | Expiry computed from the business date in `Asia/Kolkata`. Master §4.2 |
+| 12 | `farmer_product_supplies.farmer_id`, without confirmation source/by/at, evidence or reason — §5.5 L400–417 | Dated supply keyed by `supplier_id`, with confirmation source/by/at, evidence, reason and version. ADR-0004; master §6 |
+| 13 | Post-order formula `confirmed supply − active reservations − confirmed allocations` — §1.3 L69, §4.3 L321, §16 L913–914 | `ATP = max(0, eligible on-hand + open confirmed supply − active reservations)`, with the no-double-count conversion. ADR-0007 |
+| 14 | Aggregation per product + date only — §4.2 L311 | Also takes a zone parameter (single pool at launch). ADR-0007 |
+| 15 | `audit_logs` with raw `ip_address`; no actor role/request ID/source — §5.6 L420–433 | One append-only `audit_logs` (master §5). `ip_hash` nullable and unused until founders approve. No raw IP |
+| 16 | Versioned `/api/v1` REST endpoints — §6 L446–520 | Customer: named Edge Functions. Admin: RLS-protected reads + `SECURITY DEFINER` RPCs/Edge Functions from Next.js server actions/route handlers. The envelope (L522–548) is **kept** as the shared Zod contract. ADR-0003 |
+| 17 | Available-products response with float `availableQuantity: 20.0`, exact quantity, product-level only — §7 L557–577 | `get-catalog`: per-SKU status (`available`/`limited`/`unavailable`) + `maxOrderable` packs; decimal-string quantities; no raw supply totals (founders may revise). ADR-0003, ADR-0006, ADR-0007 |
+| 18 | Suggested project structure — §11 L672–699 | Master §2.1 |
+| 19 | Phases 0–7 and Prompts 0–7 — §12 L704–802, §17 L959–1015 | Sub-steps: Phases 1–2 → master Phase 2 (schema/RLS) and Phase 3 (auth UI); Phases 3–6 → master Phase 3; Phase 7 → master Phase 9. ADR-0001 |
+
+Still open (not superseded): the §16 defaults are dev-only until founders sign them off, and the "Order cutoff: Midnight, confirm" default (L904) is still a founder decision. See `docs/business-decisions.md`. The §8 storage rules and the 5 MB image limit are carried into master §13.9 as dev defaults.
+
+
 ## Implementation Specification \| MVP v1.0
 
 **Purpose:** Build the first Samkrushi web dashboard. Authorized
@@ -48,6 +77,8 @@ Keep the architecture extensible for these later capabilities.
 
 ## 1.3 Critical terminology
 
+> **Superseded (v1.1):** The post-order formula is replaced by `ATP = max(0, eligible on-hand + open confirmed supply − active reservations)` (master §1.1, ADR-0007). The MVP SUM formula remains the Phase 3 special case.
+
 This MVP records **farmer-confirmed supply**, not necessarily physically
 received warehouse stock.
 
@@ -78,6 +109,8 @@ for business dates and store timestamps in UTC.
 ------------------------------------------------------------------------
 
 # 2. Users, roles and security
+
+> **Superseded (v1.1):** Roles map to `super_admin` / `operations_admin` / `viewer` in `user_roles`. Staff use Supabase Auth email+password (no app-managed hashing). Audit history is super_admin only (ADR-0005).
 
 Farmers do not log in. The dashboard is for authorized Samkrushi staff.
 
@@ -132,6 +165,8 @@ responsive for desktop, tablet and mobile browsers.
 
 ## 3.1 Login
 
+> **Superseded (v1.1):** Login is by email only, unless founders require usernames. Staff sessions use `@supabase/ssr` HTTP-only SameSite cookies, and customer-only sessions are rejected (ADR-0005).
+
 Fields: email/username, password. Validate required fields. Use a
 generic invalid-credentials message. Redirect authenticated staff to
 Overview. Protect all dashboard routes and APIs. Prevent duplicate
@@ -178,6 +213,8 @@ district/mandal and whether active supply exists. Do not hard-delete a
 farmer with business history; deactivate them instead.
 
 ## 3.4 Farmer registration
+
+> **Superseded (v1.1):** Stored as `suppliers` + `farmer_profiles` (ADR-0004). "Active on creation" is a dev default; status supports `pending_verification` pending founder confirmation. Which fields are mandatory is open (`docs/business-decisions.md`).
 
 Fields required under the current business requirement:
 
@@ -232,6 +269,8 @@ records.
 
 ## 3.6 Add product supply
 
+> **Superseded (v1.1):** Quantity rules: DB `CHECK (>= 0)`, create requires `> 0`. The FK is `supplier_id` (master §4.2).
+
 Staff opens a farmer profile and chooses Add Product.
 
 Fields: - Product: required dropdown/autocomplete populated from active,
@@ -254,6 +293,8 @@ Normalize units before aggregation (e.g. 500 g = 0.5 kg). Never silently
 mix units.
 
 ## 3.7 Update quantity
+
+> **Superseded (v1.1):** An update may set `0` only with a reason, and zero rows are excluded from availability (master §4.2).
 
 Allow authorized staff to update quantity and business date. Capture old
 value, new value, reason, actor and timestamp. Require a reason for
@@ -283,6 +324,8 @@ reason.
 
 ## 4.1 Product catalog
 
+> **Superseded (v1.1):** Split into `products` (base unit, precision, low-supply threshold) + `product_skus` (packs) (ADR-0006). Catalog writes are super_admin only in the MVP.
+
 The initial list of products is inserted into the database before
 launch. Farmer supply forms select from this catalog; staff cannot enter
 arbitrary product names.
@@ -300,6 +343,8 @@ forms.
 
 ## 4.2 Visibility rule
 
+> **Superseded (v1.1):** Visibility uses the shared availability function, which also takes a zone parameter (single pool at launch) (ADR-0007).
+
 A product may appear as available to customers only when: 1. Catalog
 product is active. 2. At least one active farmer has valid supply for
 the requested business date. 3. Aggregate sellable quantity is greater
@@ -315,6 +360,8 @@ endpoint (or return an unavailable state only if the customer UI needs
 it).
 
 ## 4.3 Future customer order integration
+
+> **Superseded (v1.1):** Replaced by ADR-0007: interim checkout may reserve open confirmed supply, and reservations are held against a supply pool or a batch.
 
 When ordering is introduced, reserve quantity transactionally:
 
@@ -334,6 +381,8 @@ schema/API extensible.
 
 ## 4.4 Expiry
 
+> **Superseded (v1.1):** Expiry is computed from the business date in `Asia/Kolkata`. No stored `EXPIRED` status is required (master §4.2).
+
 Every supply record applies to a defined business date/procurement
 cycle. Use UTC timestamps and `Asia/Kolkata` business dates. Expired
 records do not count. Show them as requiring reconfirmation. Never
@@ -348,6 +397,8 @@ indexes.
 
 ## 5.1 `staff_users`
 
+> **Superseded (v1.1):** Replaced by `staff_profiles` + `user_roles` over Supabase `auth.users`. No `password_hash` (ADR-0005).
+
 -   `id` UUID primary key
 -   `full_name` varchar(120), required
 -   `email` varchar(255), unique, required
@@ -358,6 +409,8 @@ indexes.
 -   `created_at`, `updated_at` timestamptz
 
 ## 5.2 `farmers`
+
+> **Superseded (v1.1):** Replaced by `suppliers` (`supplier_type = farmer`) + 1:1 `farmer_profiles`. Enum values are lowercase (`acre`, `hectare`) (ADR-0004).
 
 -   `id` UUID primary key
 -   `farmer_code` varchar(30), unique
@@ -383,6 +436,8 @@ indexes.
 
 ## 5.4 `products`
 
+> **Superseded (v1.1):** Replaced by `products` + `product_skus`. Units are lowercase (`kg`, `g`, `piece`, `bunch`) (ADR-0006).
+
 -   `id` UUID primary key
 -   `sku` varchar(50), unique
 -   `name` varchar(120), required
@@ -398,6 +453,8 @@ indexes.
 -   `created_at`, `updated_at` timestamptz
 
 ## 5.5 `farmer_product_supplies`
+
+> **Superseded (v1.1):** Dated supply references `supplier_id`, adds confirmation source/by/at, evidence and reason, and computes expiry instead of storing `EXPIRED`. Statuses are lowercase (ADR-0004, master §4.2).
 
 One farmer's confirmed quantity of one product for one business date.
 
@@ -418,6 +475,8 @@ suitable unique constraint/partial unique index. Update the current
 record and preserve change history in audit logs.
 
 ## 5.6 `audit_logs`
+
+> **Superseded (v1.1):** One append-only `audit_logs` table with `actor_role`, `request_id` and `source`, and redacted before/after. **No raw `ip_address`**; `ip_hash` is nullable and unused until founders approve (master §5).
 
 -   `id` UUID primary key
 -   `actor_user_id` UUID nullable
@@ -442,6 +501,8 @@ not build them all in this MVP.
 ------------------------------------------------------------------------
 
 # 6. Backend API contract
+
+> **Superseded (v1.1):** There is no `/api/v1` REST layer. Customers use the named Edge Functions. Admin uses RLS reads + `SECURITY DEFINER` RPCs/Edge Functions from Next.js server actions/route handlers. The response envelope below is kept as the shared Zod contract (ADR-0003).
 
 Use versioned endpoints under `/api/v1`. Protected endpoints require
 authentication and role checks.
@@ -550,6 +611,8 @@ maximum page size and use stable sorting.
 ------------------------------------------------------------------------
 
 # 7. Customer application integration
+
+> **Superseded (v1.1):** The response is per SKU, with status + `maxOrderable` packs. Quantities are decimal strings (never floats) and enum values are lowercase. Raw available quantity is not exposed (ADR-0003, ADR-0006, ADR-0007).
 
 The customer app and dashboard share the same backend/catalog. The app
 must not read farmer records or calculate aggregate availability itself.
@@ -671,6 +734,8 @@ stock". - Show which procurement/delivery date the quantity applies to.
 
 # 11. Suggested project structure
 
+> **Superseded (v1.1):** Use the master §2.1 layout.
+
 First inspect the existing repository and preserve its working
 conventions. If starting fresh, a possible structure is:
 
@@ -702,6 +767,8 @@ Do not duplicate availability logic in the frontend or customer app.
 ------------------------------------------------------------------------
 
 # 12. Phased implementation plan
+
+> **Superseded (v1.1):** These phases are sub-steps of master Phases 2–3 (Phase 7 → master Phase 9). Do not execute them as project phases (ADR-0001).
 
 ## Phase 0 --- Inspect repository and plan
 
@@ -873,6 +940,8 @@ access. - No test data or default credentials.
 
 # 16. Assumptions and decisions to confirm
 
+> **Superseded (v1.1):** These remain dev-only defaults. Their status is tracked in `docs/business-decisions.md`. Role and storage items are resolved by ADR-0005 and master §13.9.
+
 Use these defaults for development, document them, and obtain founder
 confirmation before production.
 
@@ -931,6 +1000,8 @@ order state should future stock be reserved/deducted?
 ------------------------------------------------------------------------
 
 # 17. Instructions for the AI coding agent
+
+> **Superseded (v1.1):** The master spec is the source of truth (ADR-0001). The prompts below must not be executed literally.
 
 Treat this file as the MVP functional source of truth.
 

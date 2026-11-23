@@ -7,13 +7,31 @@ One important architecture decision: Android and iOS will have separate build an
 Application: Android customer application\
 Monorepo location: `apps/mobile`\
 Technology: Expo + React Native + TypeScript\
-Version: 1.0\
+Version: 1.1 (amended 2026-11-23)\
 Target market: Hyderabad, Telangana, India\
-Depends on: `SAMKRUSHI_MASTER_MONOREPO_SPEC.md`
+Depends on: `docs/specs/SAMKRUSHI_MASTER_MONOREPO_SPEC.md` (governs; ADR-0001)
+
+## Amendments v1.1 — 2026-11-23
+
+Founder-approved decisions of 2026-11-23 (see `docs/business-decisions.md`) were applied in place:
+
+| Change | Sections | ADR |
+|---|---|---|
+| Android is the **release 1** platform. iOS build config is maintained in parallel; the iOS store release follows | §1, §6.6, §11 | ADR-0009 |
+| Payments use Razorpay Hosted/Standard Checkout through `expo-web-browser` first. The native SDK may come later; hosted stays as the fallback | §4.14, §5.3, §6.4 | ADR-0008 |
+| Server quote (`get-checkout-quote`) before order creation | §4.13 | ADR-0003 |
+| Catalog availability is status + `maxOrderable` packs, never raw supply. Quantities are decimal strings | §4.3, §4.6 | ADR-0003, ADR-0007 |
+| Customer operation transports (Edge Function vs RLS-direct) named per screen | §4 | ADR-0003 |
+| New delivery-OTP display screen (master Phase 7) | §1.1, §4.22 | — |
+| Refund states include `manual_review`. Timeline renders terminal/exception states | §4.17, §4.18 | — |
+| Substitution option set is still an open founder decision | §4.19 | — |
+| Address `locality`; lat/long optional and consent-gated; server serviceability via `save-address` | §4.10 | — |
+| Pending checkout recovery, guest cart revalidation, chunked/encrypted secure session storage | §4.7, §4.14, §5.3, §5.4 | — |
+| Implementation sequence mapped to master phases | §10 | ADR-0001 |
 
 ## 1. Purpose and application scope
 
-The Samkrushi Android application is the primary customer-facing shopping platform.
+The Samkrushi Android application is the primary customer-facing shopping platform. Android is the **release 1** platform (ADR-0009). The same shared Expo codebase also produces the iOS build, whose store release follows Android.
 
 Customers should be able to discover fresh produce, check whether Samkrushi delivers to their location, browse available products, select fixed packs, add products to a cart, place orders, make payments, track deliveries and contact customer support.
 
@@ -36,7 +54,7 @@ The first customer-facing release must include:
 11. Address management.
 12. Delivery-date and slot selection.
 13. Checkout.
-14. Razorpay online payments.
+14. Razorpay online payments (Hosted/Standard Checkout, ADR-0008).
 15. Cash on Delivery, only when enabled by business rules.
 16. Order confirmation.
 17. Order history.
@@ -45,6 +63,7 @@ The first customer-facing release must include:
 20. Customer support.
 21. Push notifications.
 22. Account deletion request.
+23. Delivery OTP display for proof of delivery (§4.22; master Phase 7).
 
 ### 1.2 Features deferred from the first release
 
@@ -158,8 +177,9 @@ Requirements:
 
 - Display the approved Samkrushi logo.
 - Show a short loading state.
-- Restore the customer's authentication session securely.
-- Load public application configuration.
+- Restore the customer's authentication session securely (chunked/encrypted secure storage; master §13.5).
+- Load public application configuration (`get-app-config`: customer-safe settings, support contacts, policy links, feature flags such as COD enabled and payment checkout mode, minimum supported app version).
+- Check for a persisted pending checkout and reconcile it (§4.14, master §13.3).
 - Retrieve the saved PIN/address context.
 - Load any required serviceability information.
 - Handle network failures gracefully.
@@ -222,9 +242,9 @@ Each product card should display:
 - Unit.
 - Customer price.
 - Add-to-cart action.
-- Availability status where appropriate.
+- Availability status where appropriate (`available`, `limited` or `unavailable`, mapped to display labels in the app).
 
-The product catalog must come from the backend.
+The product catalog must come from the backend (`get-catalog` Edge Function). It returns availability status and a server-computed `maxOrderable` pack count per SKU, derived from the shared availability function. The app never receives, displays or derives raw farmer-supply totals. Quantities arrive as decimal strings and prices as integer paise (ADR-0003).
 
 The customer must not see:
 
@@ -257,7 +277,7 @@ Requirements:
 - Refresh behavior.
 - Empty state when no products are available.
 
-The categories must be maintained through the admin catalog rather than hard-coded independently in the app.
+The categories must be maintained through the admin catalog rather than hard-coded independently in the app. Category metadata is read RLS-direct (active rows). Products per category come from `get-catalog` with a category filter.
 
 ### 4.5 Product search screen
 
@@ -266,7 +286,7 @@ Customers must be able to search by product or category name.
 Requirements:
 
 - Search input.
-- Debounced API search.
+- Debounced API search (`get-catalog` with a `q` parameter; server-side matching).
 - Clear search action.
 - Search results.
 - No-result message.
@@ -285,7 +305,7 @@ When a customer opens a product, display:
 - Available fixed-pack SKUs.
 - Pack size and unit.
 - Price.
-- Delivery-date availability.
+- Delivery-date availability per SKU (status + `maxOrderable`, from `get-product-detail`).
 - Verified handling or storage details, when provided.
 
 The customer selects a fixed pack and quantity.
@@ -299,7 +319,7 @@ Example:
 
 The above is only an illustrative layout; actual catalog values must come from the admin-managed catalog.
 
-Quantity controls must follow the SKU's configured minimum, maximum and increment.
+Quantity controls must follow the SKU's configured minimum, maximum and increment (in packs), and must not exceed the server-provided `maxOrderable`. Each SKU is a fixed pack of the product's base unit (`products` + `product_skus`, ADR-0006). Availability is shared across a product's SKUs.
 
 Never invent nutritional values or make unverified claims such as organic, chemical-free or pesticide-free.
 
@@ -324,6 +344,7 @@ Requirements:
 - Customers should be able to edit quantities.
 - The app must clearly indicate that stock and prices are revalidated at checkout.
 - Cart contents must not be treated as reserved inventory.
+- After login, and before the quote, revalidate every line. Flag inactive SKUs, changed prices, unavailable items and quantities above `maxOrderable` with clear messages. Never drop or change lines silently (master §13.4).
 
 Use local cart state for convenience, not as the source of truth for availability.
 
@@ -331,7 +352,7 @@ Use local cart state for convenience, not as the source of truth for availabilit
 
 Authentication is required before placing an order.
 
-Use the configured Supabase Auth flow. If phone OTP authentication is chosen:
+Use the configured Supabase Auth flow. The customer authentication method is an open founder decision (`docs/business-decisions.md`, master Phase 5). Phone OTP needs a paid SMS provider and India DLT registration, which require approval. Customer sign-up never grants staff access (shared Auth project, ADR-0005). If phone OTP authentication is chosen:
 
 1. Customer enters phone number.
 2. App validates input.
@@ -386,10 +407,11 @@ Requirements:
 
 - Add address.
 - Edit address.
-- Delete address where allowed.
+- Delete address where allowed (soft archive through `archive-address`; orders keep their address snapshot; the rule for addresses on active orders is a founder decision).
 - Set default address.
-- Verify serviceability with backend.
-- Customer can modify only their own addresses.
+- Verify serviceability with backend. `save-address` (Edge Function) creates, updates and sets the default, and runs the server serviceability check.
+- Customer can modify only their own addresses. The address list is read RLS-direct.
+- Do not request precise location. Latitude/longitude stay empty unless an approved feature needs them and the customer consents.
 
 ### 4.11 Checkout — address selection
 
@@ -438,22 +460,24 @@ Display:
 - Substitution preference.
 - Relevant delivery/cancellation/refund policy links.
 
-All totals must be calculated or validated by the backend.
+All totals must be calculated or validated by the backend. The review screen renders the response of `get-checkout-quote` (Edge Function). It returns server-calculated lines, subtotal, discounts, delivery fee, taxes, total, COD eligibility, availability/slot issues and a quote reference. The quote reserves nothing.
 
-If prices, stock or slot capacity change, show an explanation and ask the customer to review the updated order.
+If prices, stock or slot capacity change, whether reported in the quote or by `create-order` as a quote-changed error with a new quote, show an explanation and ask the customer to review the updated order.
 
 ### 4.14 Payment screen
 
 Supported payment choices:
 
-Online payment
+Online payment (release 1: Razorpay Hosted/Standard Checkout, ADR-0008)
 
-- Create internal order through backend.
-- Backend creates Razorpay order.
-- App launches Razorpay checkout.
-- App receives provider return/callback.
-- App queries backend for actual order/payment state.
-- Verified webhook confirms payment.
+- Persist the idempotency key and quote reference locally, then create the internal order through `create-order`.
+- Backend reserves stock/slot, creates the Razorpay order, and returns a short-lived hosted-checkout session.
+- App opens the hosted payment page in the system or in-app browser through `expo-web-browser`. The page runs Razorpay Standard Checkout for the server-created order.
+- The page redirects to the app's return link (verified Android App Link, with a custom-scheme fallback). The return, a cancellation or a browser dismissal only triggers a status query.
+- App queries backend (`get-order-status`) for actual order/payment state.
+- Verified webhook (or server-side provider reconciliation) confirms payment.
+- While the reservation is active, a pending order can reopen payment through `resume-payment`. This never creates a new order.
+- The native `react-native-razorpay` SDK is a possible later enhancement behind a server-controlled checkout-mode flag. Hosted Checkout remains the permanent fallback.
 
 Cash on Delivery
 
@@ -463,7 +487,7 @@ Cash on Delivery
 
 The client-side success callback is not proof of payment.
 
-If the app closes during payment, it must recover the pending order and query the backend rather than automatically creating another order.
+If the app closes during payment, it must recover the pending order and query the backend rather than automatically creating another order. The persisted pending-checkout record (`idempotencyKey`, `quoteReference`, `orderId`, `sessionExpiresAt`; no payment data) is reconciled on launch and resume (master §13.3), and cleared on a terminal state.
 
 ### 4.15 Order confirmation
 
@@ -488,7 +512,7 @@ Provide:
 - Completed orders.
 - Cancelled orders.
 
-Each card should show order number, date, total and current state.
+Each card should show order number, date, total and current state. The list is read RLS-direct from the customer's own order-summary view.
 
 ### 4.17 Order details and tracking
 
@@ -512,7 +536,7 @@ Out for delivery
 Delivered
 ```
 
-Actual order states must follow the backend state machine.
+Actual order states must follow the backend state machine. `get-order-status` derives the timeline on the server from order, payment and fulfilment history. The UI must also render terminal and exception states: `cancelled`, `delivery_failed`, `returned`, and refund states.
 
 Live GPS tracking is not required for the first release.
 
@@ -520,13 +544,13 @@ Live GPS tracking is not required for the first release.
 
 The app must:
 
-- Show whether cancellation is allowed.
+- Show whether cancellation is allowed (`cancellationEligibility` from `get-order-status`; computed on the server).
 - Allow a cancellation request when permitted.
 - Collect cancellation reason.
 - Show whether staff approval is required.
 - Display refund status independently from order status.
 
-Possible refund states include requested, processing, confirmed/refunded, failed or manual review.
+Possible refund states include requested, processing, confirmed/refunded, failed or manual review. These map to the backend `refund_status` values `requested`, `pending` (processing), `processed` (refunded), `failed`, `cancelled` and `manual_review`. The display mapping lives in `packages/shared`.
 
 Never claim a refund is complete before provider confirmation/reconciliation.
 
@@ -537,6 +561,8 @@ The customer may select preferences supported by Samkrushi's approved policy, su
 - No substitutions.
 - Allow only an approved replacement.
 - Contact me before substitution, if this option is enabled operationally.
+
+The option set is an **open founder decision**. "Allow similar" and "allow only an approved replacement" carry different consent semantics, and the source specs disagree. The app renders only the options the backend enables. The dev default enables only `no_substitution`.
 
 Never silently substitute a product.
 
@@ -554,6 +580,8 @@ Support screen should allow:
 - Attach an optional permitted image.
 - View ticket status and public responses.
 
+Transports: `create-support-ticket` and `add-support-message` (Edge Functions; order-ownership checks and rate limits); attachments through `create-upload-url` to private storage; ticket list/detail and public replies read RLS-direct from a customer view. Help topics and attachment limits are founder decisions.
+
 Internal staff-only notes must not be displayed.
 
 ### 4.21 Account deletion
@@ -567,6 +595,19 @@ Requirements:
 - Display request state.
 - Explain approved retention/anonymization rules.
 - Do not claim deletion is complete until backend workflow has completed.
+- Uses `request-account-deletion`. The public web page `/delete-account` is the store-required fallback (master §13.8).
+
+### 4.22 Delivery OTP display (master Phase 7)
+
+Purpose: give the customer the one-time code that the rider enters as proof of delivery.
+
+- On an owned order in an eligible delivery state (for example out for delivery), order details shows "Show delivery code".
+- The app calls `get-delivery-otp` (Edge Function). The server issues a single-use code, stores only its hash, and returns the plaintext only to the authenticated owner.
+- Display the code large and accessible (TalkBack-readable, not colour-only), with a short instruction to share it only with the assigned rider at handover.
+- Re-requesting is rate-limited and invalidates the previous code. Explain this before reissuing.
+- Never put the code in push notifications, lock-screen text, logs or analytics. Do not cache it beyond the screen session.
+- After delivery is confirmed, refresh order state from `get-order-status`.
+- Additional channels (such as SMS) and the code length/expiry are founder decisions held as server settings.
 
 ## 5. State management and data ownership
 
@@ -610,9 +651,9 @@ The app may manage:
 | Validation             | Zod                              |
 | Forms                  | React Hook Form                  |
 | Authentication         | Supabase Auth                    |
-| Secure session storage | Approved secure platform storage |
+| Secure session storage | `expo-secure-store` (Keystore-backed) with a chunked or encrypted large-session adapter (master §13.5) |
 | Push notifications     | Expo Notifications               |
-| Payment                | Razorpay integration             |
+| Payment                | Razorpay Hosted/Standard Checkout through `expo-web-browser` (ADR-0008); native SDK later |
 
 Do not duplicate backend business rules in React Native components.
 
@@ -661,16 +702,17 @@ Requirements:
 
 - Ask notification permission contextually.
 - Use appropriate Android notification channels.
-- Handle push-token refresh.
-- Remove invalid/revoked tokens.
+- Handle push-token refresh (`register-push-token`).
+- Remove invalid/revoked tokens (`revoke-push-token` on logout or permission loss; server deactivates invalid tokens).
+- Keep payloads minimal. Never include delivery OTPs or sensitive details.
 - Tapping notification opens the correct order after authentication is restored.
 
 Push notifications are informational, not authoritative business records.
 
 ### 6.4 Deep links and payment recovery
 
-- Configure verified Android App Links for the approved domain.
-- Test payment return when app is foregrounded, backgrounded and terminated.
+- Configure verified Android App Links for the approved domain (`assetlinks.json` hosted there; the domain is a founder decision). Keep a custom-scheme fallback for the hosted-checkout return.
+- Test hosted-checkout return (success, cancel, browser dismissal, back press) when the app is foregrounded, backgrounded and terminated.
 - Recover the pending order after process death.
 - Query backend payment/order state.
 - Handle duplicate callbacks safely.
@@ -692,6 +734,8 @@ Test:
 - App process termination during payment.
 
 ### 6.6 Google Play release
+
+Google Play is the release 1 store (ADR-0009). Release configuration (per-environment `applicationId` variants in `app.config.ts`, EAS build/submit profiles, FCM credentials through Expo, notification channels) is maintained from master Phase 1. Store identity, account ownership and signing custody are founder decisions.
 
 Prepare:
 
@@ -752,27 +796,35 @@ Check current Google Play target-SDK, permission and policy requirements during 
 16. Account deletion is authenticated and traceable.
 17. Offline catalog is identified as stale.
 18. TalkBack, font scaling, keyboard and Back navigation pass tests.
+19. Review totals come from `get-checkout-quote`. A changed quote is shown for re-review before ordering.
+20. Hosted-checkout return, cancellation and dismissal never mark an order paid or failed; only server state does.
+21. The delivery OTP is shown only to the order owner, never in notifications, and matches what the rider enters.
+22. Guest cart lines are revalidated after login, with stale items clearly flagged.
+23. Catalog shows availability status and `maxOrderable` only, never raw supply quantities.
 
 ## 10. Android implementation sequence
 
-| Phase | Work                                                    |
-| ----- | ------------------------------------------------------- |
-| 1     | Expo setup, routing, theme, shared packages             |
-| 2     | Auth/session and serviceability                         |
-| 3     | Home, categories, search and product details            |
-| 4     | Cart and persistence                                    |
-| 5     | Profile and addresses                                   |
-| 6     | Slot selection and checkout review                      |
-| 7     | Razorpay and COD                                        |
-| 8     | Order confirmation, history and tracking                |
-| 9     | Cancellation, support and account deletion              |
-| 10    | Notifications, deep links and Android release hardening |
+These are sub-steps, not a separate phase numbering. Master phases govern (ADR-0001).
 
-Each phase must be tested before proceeding.
+| Step | Work                                                    | Master phase |
+| ---- | ------------------------------------------------------- | ------------ |
+| 1    | Expo setup, routing, theme, shared packages, Android + iOS build configs | 1 |
+| 2    | App config, auth/session (secure storage) and serviceability | 5 |
+| 3    | Home, categories, search and product details            | 5            |
+| 4    | Cart, persistence and post-login revalidation           | 5            |
+| 5    | Profile and addresses                                   | 5            |
+| 6    | Slot selection and checkout review (quote)              | 5 (slots), 6 (quote) |
+| 7    | Razorpay Hosted Checkout, pending checkout recovery and COD | 6        |
+| 8    | Order confirmation, history and tracking                | 6 (confirmation), 8 |
+| 8a   | Delivery OTP display                                    | 7            |
+| 9    | Cancellation, support and account deletion              | 8            |
+| 10   | Notifications, deep links and Android release hardening (release 1) | 9 |
+
+Each step must be tested before proceeding.
 
 ## 11. Definition of done
 
-The Android app is ready for pilot testing when:
+The Android app is ready for pilot testing, as release 1, when:
 
 - All launch customer journeys work end to end.
 - Backend remains the source of truth.

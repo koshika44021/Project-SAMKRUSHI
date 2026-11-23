@@ -1,5 +1,36 @@
 # SAMKRUSHI — Product, Architecture & Implementation Specification
 
+> **Status: source reference (superseded where it conflicts).** Amended 2026-11-23 (v1.1 annotations only; the v1.0 text below is unchanged apart from the inserted "Superseded (v1.1)" callouts).
+> Governing order (ADR-0001): `docs/specs/SAMKRUSHI_MASTER_MONOREPO_SPEC.md` v1.1 → `SAMKRUSHI_WEB_ADMIN_SPEC.md` / `SAMKRUSHI_ANDROID_APP_SPEC.md` / `SAMKRUSHI_IOS_APP_SPEC.md` → accepted ADRs in `docs/adr/`. This document applies **only where those are silent**. Its phase numbering and prompts must not be executed literally.
+> Line numbers below refer to the original v1.0 text (before this block and the callouts were inserted).
+
+| # | Superseded item (v1.0 location) | Replaced by |
+|---|---|---|
+| 1 | "This document is the source of truth" — §0, L14 | Master §0; ADR-0001 |
+| 2 | Phase numbering 0–6 and "implement in the phases in Section 17" — §0.1 L18, §17 L1743–1900; prompts §23 L2071–2105 (e.g. "Implement Phase 0 only" for the monorepo foundation) | Master §10 phases 0–9 are the only numbering. ARCH phases are sub-steps: ARCH 0 ≈ master 1, ARCH 1 ≈ master 2, ARCH 2 ≈ master 3 + 4, ARCH 3 ≈ master 5, ARCH 4 ≈ master 6, ARCH 5 ≈ master 7, ARCH 6 ≈ master 8 + 9. ADR-0001 |
+| 3 | "Implement migrations for … all domains" in the DB phase — §17 L1771, Prompt 2 L2085 | Master §10 Phase 2 scope (identity/roles, staff profiles, suppliers + farmer profiles, catalog, dated supply, audit, settings/policy versions, storage refs, availability function). Each later domain migrates in its own phase. ADR-0001 |
+| 4 | "Phone-based authentication" fixed as a first-release decision — §1.3 L87, §4 L325 | Open founder decision (customer auth method; paid SMS/DLT needs approval) — `docs/business-decisions.md`, master §12 |
+| 5 | Mobile reads the catalog through Supabase "public queries" — §3.1 L176 | `get-catalog` / `get-product-detail` Edge Functions over the shared availability function. RLS-direct access only for the operations listed in master §7. ADR-0003 |
+| 6 | Monorepo layout (`packages/ui`, `packages/tsconfig`, `supabase/seed.sql`, no `docs/specs`) — §3.3 L241–310 | Master §2.1 (`packages/config`, `packages/ui-web`, `supabase/seed/`, `docs/specs/`, `docs/business-decisions.md`). `supabase/config.toml` and `.github/workflows/` are kept |
+| 7 | `app_role` without a read-only role — §7.1 L647 | `app_role` adds `viewer` (SELECT-only MVP dashboard data, no audit/finance). ADR-0005 |
+| 8 | `supplier_type` includes `wholesaler` — §7.1 L648 | `farmer`, `fpo`, `aggregator`, `approved_source`, `other`; wholesaler only if founders approve. ADR-0004 |
+| 9 | `refund_status` lacks a manual-review state — §7.1 L658 | Adds `manual_review`. Master §4.6 |
+| 10 | `profiles` as the identity table for everyone, including staff — §7.2 L665–673 | `profiles` = customers. Staff use `staff_profiles` + `user_roles` with Supabase Auth email+password. ADR-0005 |
+| 11 | `addresses` without locality; lat/long — §7.2 L686–694 | Adds `locality`. Lat/long nullable and consent-gated. Master §5 |
+| 12 | Each `products` row is one sellable SKU/pack — §7.3 L708–730 | `products` (base/inventory unit, precision, low-supply threshold) + `product_skus` (SKU code, pack quantity in base unit, sale unit, `price_paise`, min/max/step). ADR-0006 |
+| 13 | `suppliers` lacks farmer fields; status `pending/active/suspended/inactive` — §7.4 L745–756 | `suppliers` + 1:1 `farmer_profiles`; status `pending_verification`, `active`, `suspended`, `inactive`. ADR-0004 |
+| 14 | `inventory_reservations.batch_id` required — §7.6 L903–914 | A reservation is held against a supply pool (product + business date) **or** a batch. ADR-0007 |
+| 15 | Batch-only availability: checkout locks batch rows and reserves only from batches — §1.4 L130, §6.2 L588, §6.3 L609, §8.1 L1262–1263, §8.2 L1284–1285 | `ATP = eligible on-hand + open confirmed supply − active reservations`. Interim checkout may reserve open supply. Supply converts to on-hand exactly once. Master §1.1; ADR-0007 |
+| 16 | `admin_audit_logs` without actor role/request ID/source/reason; `ip_hash` — §7.10 L1208–1218 | One append-only `audit_logs` table (master §5). `ip_hash` nullable and unused until founders approve |
+| 17 | `customer_decision` values `allow_similar`, `contact_me`, `no_substitution` — §7.7 L1029 | Open founder decision (substitution option set). Dev default: `no_substitution` only |
+| 18 | Mobile app completes payment directly with Razorpay; `RAZORPAY_KEY_ID` in mobile checkout config — §8.4 L1330, §16 L1721 | Razorpay Hosted/Standard Checkout page opened through `expo-web-browser` first. The key ID is used by the hosted page, not the mobile bundle. ADR-0008 |
+| 19 | §15 function list as the API definition — §15 L1622–1705 | Master §7 operation table governs. ARCH names are used where the master is silent. ADR-0003 |
+| 20 | Founder answers recorded only in `docs/business-decisions.md` — §24 L2111 | ADRs in `docs/adr/`, indexed by `docs/business-decisions.md`. ADR-0001 |
+| 21 | Prompt 0 reads `SAMKRUSHI_ARCH_SPEC.md` alone — §23 L2077 | All specs live in `docs/specs/`; read the master first. ADR-0001 |
+
+Aligned (not superseded): the Android-first release in §1.4 L124 matches ADR-0009 (Android release 1; the iOS build config is maintained from master Phase 1; the iOS store release follows). Lowercase snake_case enums (§4.1 L343) match master §5.
+
+
 **Document type:** Master implementation specification for AI coding agents  
 **Version:** 1.0  
 **Prepared:** 30 October 2026  
@@ -10,6 +41,8 @@
 ---
 
 ## 0. Instructions to the AI coding agent
+
+> **Superseded (v1.1):** This document is a source reference, not the source of truth. Precedence and phase numbering follow master §0 and §10 (ADR-0001).
 
 This document is the source of truth for the first implementation of Samkrushi. Read it fully before changing the repository or generating code.
 
@@ -82,6 +115,8 @@ These are launch assumptions, not permanent technical limits. Keep the platform 
 
 ### Included in the first production release
 
+> **Superseded (v1.1):** Android-first is confirmed (ADR-0009: Android release 1, iOS store release follows). "Phone-based authentication" is **not** decided; the customer auth method is an open founder decision (master §12). Payments use Razorpay Hosted/Standard Checkout first (ADR-0008).
+
 - Customer Android application built with Expo/React Native, with an architecture that can also support iOS.
 - Guest browsing of catalog and product details.
 - Phone-based authentication using a supported Supabase Auth flow.
@@ -118,6 +153,8 @@ These are launch assumptions, not permanent technical limits. Keep the platform 
 Do not let deferred features delay the first usable release. Design table and service boundaries so they can be added later without breaking order history.
 
 ## 1.4 Key launch decisions
+
+> **Superseded (v1.1):** Inventory is not batch-only. ATP = eligible on-hand + open confirmed supply − active reservations, so checkout may reserve open supply before receipt (master §1.1, ADR-0007). Payments: Hosted/Standard Checkout first (ADR-0008).
 
 | Area | First-release decision |
 |---|---|
@@ -170,6 +207,8 @@ A person may have more than one role. Role assignment is performed only through 
 # 3. System architecture
 
 ## 3.1 High-level architecture
+
+> **Superseded (v1.1):** The customer catalog is served by the `get-catalog`/`get-product-detail` Edge Functions, not public table queries. RLS-direct access is limited to the operations in master §7 (ADR-0003). See the master §2.2 diagram.
 
 ```mermaid
 flowchart TD
@@ -237,6 +276,8 @@ flowchart TD
 - Failed notifications must not reverse a paid order or inventory operation.
 
 ## 3.3 Monorepo structure
+
+> **Superseded (v1.1):** The layout follows master §2.1 (`packages/config`, `packages/ui-web`, `supabase/seed/`, `docs/specs/`, `docs/business-decisions.md`). Toolchain: ADR-0002.
 
 ```text
 samkrushi/
@@ -592,6 +633,8 @@ Rules:
 
 ## 6.3 Goods receiving and quality inspection
 
+> **Superseded (v1.1):** Receipt lines may reference the dated supply they fulfil. Posting converts that supply to on-hand exactly once (master §4.4, ADR-0007).
+
 At the supplier/packing facility, an authorized Samkrushi operator records:
 
 - Purchase order and supplier.
@@ -642,6 +685,8 @@ All tables must have explicit primary keys, timestamps where applicable, constra
 
 ## 7.1 Core enums / controlled values
 
+> **Superseded (v1.1):** `app_role` adds `viewer` (ADR-0005). `supplier_type` = `farmer`, `fpo`, `aggregator`, `approved_source`, `other`, with no `wholesaler` unless founders approve (ADR-0004). `refund_status` adds `manual_review` (master §4.6). Migrations follow the master §10 phase scope, not "all domains at once" (ADR-0001).
+
 Use PostgreSQL enums or validated lookup tables consistently. Initial values:
 
 - `app_role`: `customer`, `super_admin`, `operations_admin`, `finance_admin`, `dispatch_admin`, `support_agent`, `rider`.
@@ -664,6 +709,8 @@ Keep order, payment and fulfillment states separate. Do not overload one status 
 
 ### `profiles`
 
+> **Superseded (v1.1):** `profiles` holds customers only. Staff use `staff_profiles` + `user_roles` with Supabase Auth email+password (ADR-0005).
+
 - `id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE`
 - `full_name TEXT`
 - `phone_number TEXT`
@@ -684,6 +731,8 @@ Do not include an editable `is_admin` column. Profile updates must be limited to
 Only a trusted server-side role administration operation or controlled database seed may assign privileged roles.
 
 ### `addresses`
+
+> **Superseded (v1.1):** Add `locality`. `latitude`/`longitude` stay nullable and consent-gated (master §5).
 
 - `id UUID PRIMARY KEY`
 - `user_id UUID REFERENCES profiles(id)`
@@ -706,6 +755,8 @@ A customer may read/write only their own addresses. A rider may receive only the
 - `created_at`, `updated_at`
 
 ### `products`
+
+> **Superseded (v1.1):** Replaced by `products` (base/inventory unit) + `product_skus` (pack quantity in base unit, sale unit, price, min/max/step) (ADR-0006). Reservations and stock are in the product base unit.
 
 Each row represents a sellable SKU/pack in the launch model. Different pack sizes may be separate product rows.
 
@@ -743,6 +794,8 @@ Do not store expiring signed URLs as permanent product image references. Store o
 ## 7.4 Supplier and packing location tables
 
 ### `suppliers`
+
+> **Superseded (v1.1):** Farmers are `suppliers` with a 1:1 `farmer_profiles` extension. Status values are `pending_verification`, `active`, `suspended`, `inactive` (ADR-0004).
 
 - `id UUID PRIMARY KEY`
 - `supplier_code TEXT UNIQUE`
@@ -902,6 +955,8 @@ Use this as the immutable stock movement ledger. Prefer append-only records; cor
 
 ### `inventory_reservations`
 
+> **Superseded (v1.1):** `batch_id` is optional. A reservation carries product, business date and zone, and is held against the supply pool (no batch) or a batch. Pool reservations move to the batch when a receipt converts supply (ADR-0007).
+
 - `id UUID PRIMARY KEY`
 - `order_item_id UUID REFERENCES order_items(id)`
 - `batch_id UUID REFERENCES product_batches(id)`
@@ -1021,6 +1076,8 @@ The order line must remain historically accurate if the live product name, price
 Every meaningful status transition must be recorded.
 
 ### `customer_substitutions`
+
+> **Superseded (v1.1):** The `customer_decision` option set is an open founder decision ("allow similar" vs "approved replacement"). Dev default: `no_substitution` only. See `docs/business-decisions.md`.
 
 - `id UUID PRIMARY KEY`
 - `order_item_id UUID REFERENCES order_items(id)`
@@ -1207,6 +1264,8 @@ Only privileged roles may update settings. Validate type/range and record audit 
 
 ### `admin_audit_logs`
 
+> **Superseded (v1.1):** Use one append-only `audit_logs` table with `actor_role`, `reason`, `request_id` and `source` added. `ip_hash` stays nullable and unused until founders approve (master §5).
+
 - `id UUID PRIMARY KEY`
 - `actor_user_id UUID NULL`
 - `action TEXT`
@@ -1253,6 +1312,8 @@ Use database constraints for uniqueness, nonnegative values, valid status transi
 
 ## 8.1 Critical rule: stock reservation before accepting payment
 
+> **Superseded (v1.1):** Reservation before payment still applies, but step 3–4 reserves through the shared availability function from eligible on-hand batches **or** the business date's open supply pool (ADR-0007). A server quote (`get-checkout-quote`) precedes `create-order` (master §4.3).
+
 Do not follow the earlier design where stock is deducted only after the payment webhook. Concurrent customers could purchase the same final stock.
 
 Required process:
@@ -1271,6 +1332,8 @@ Required process:
 Avoid long-lived database transactions while calling external payment APIs. Use a two-step workflow with idempotency and compensating actions.
 
 ## 8.2 Order creation function contract
+
+> **Superseded (v1.1):** "Lock relevant product/batch rows" and "reserve from eligible batches" become: serialize on the product/date/zone pool and reserve from on-hand batches or open supply, never exceeding ATP (ADR-0007).
 
 Create a server-side operation such as `create_order_and_reserve_inventory` with the following behavior:
 
@@ -1311,6 +1374,8 @@ Payment transitions are separate:
 Fulfillment transitions follow Section 9.3. Record each transition in `order_status_history` and relevant payment/delivery event tables.
 
 ## 8.4 Payment lifecycle
+
+> **Superseded (v1.1):** `App->>RP: Complete payment` happens on a SAMKRUSHI-hosted payment page running Razorpay Standard Checkout, opened through `expo-web-browser` from a short-lived checkout session (ADR-0008). The webhook stays authoritative.
 
 Maintain separate order and payment statuses.
 
@@ -1621,6 +1686,8 @@ Implement publicly accessible pages at `/privacy-policy`, `/terms`, `/refunds-an
 
 # 15. API and server-function design
 
+> **Superseded (v1.1):** The master §7 operation table governs, including `get-app-config`, `get-checkout-quote`, `resume-payment`, `save-address`, `get-delivery-otp`, support and push-token functions. Names in this section apply where the master is silent (ADR-0003). All responses use the shared envelope.
+
 Use Supabase Edge Functions for trusted operations. Function names may be adjusted to project conventions, but their contracts and security rules must remain.
 
 ## 15.1 Customer/order functions
@@ -1708,6 +1775,8 @@ All functions must validate request schemas, return consistent error shapes and 
 
 # 16. Environment variables and secret management
 
+> **Superseded (v1.1):** With Hosted Checkout (ADR-0008), `RAZORPAY_KEY_ID` is used by the hosted payment page and server, not shipped in the mobile bundle. Node.js 24 LTS and the local Supabase runtime follow ADR-0002.
+
 Create `.env.example` with placeholder values and explanatory comments. Never commit real `.env` files.
 
 | Variable | Used by | Exposure |
@@ -1741,6 +1810,8 @@ Notes:
 ---
 
 # 17. Development phases and acceptance criteria
+
+> **Superseded (v1.1):** These phases are not the project phase numbering. Map them to master §10: ARCH 0 → master 1, 1 → 2 (restricted scope), 2 → 3 + 4, 3 → 5, 4 → 6, 5 → 7, 6 → 8 + 9 (ADR-0001).
 
 Implement one phase at a time. Do not move to the next phase until acceptance criteria pass or the founders explicitly accept a documented exception.
 
@@ -2070,6 +2141,8 @@ Future architecture extension points:
 
 # 23. AI coding-agent execution prompts
 
+> **Superseded (v1.1):** Do not execute these prompts literally. Use the master §11 prompts (ADR-0001).
+
 Use these prompts one phase at a time. The agent must continue to follow all rules in Section 0.
 
 ## Prompt 0 — Inspect and plan
@@ -2107,6 +2180,8 @@ Use these prompts one phase at a time. The agent must continue to follow all rul
 ---
 
 # 24. Founder decisions required before production
+
+> **Superseded (v1.1):** Decisions are recorded as ADRs in `docs/adr/`, indexed with the open list in `docs/business-decisions.md` (ADR-0001).
 
 The AI agent must not invent these decisions. Record the answers in `docs/business-decisions.md`:
 
