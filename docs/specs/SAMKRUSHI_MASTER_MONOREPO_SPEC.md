@@ -277,7 +277,7 @@ Do not silently grant finance, dispatch, support or user-role privileges during 
 | Availability | One shared SQL availability function (§1.1), not callable by anonymous/customer roles directly |
 | Commerce | Orders, immutable item snapshots, status history, checkout quotes |
 | Payment | Payment attempts/events, hosted-checkout sessions, provider IDs, refunds (incl. `manual_review`), payment exceptions, reconciliation |
-| Delivery | Slots/capacity reservations, riders, assignments, hashed OTP/proof, failed delivery |
+| Delivery | Slots/capacity reservations, riders, assignments, encrypted re-viewable OTP (ADR-0010)/proof, failed delivery |
 | Customer care | Support tickets and customer-visible replies, deletion requests |
 | Messaging | Device tokens, templates, transactional outbox, delivery attempts |
 | Finance | Supplier payables, cash collection/deposit, expenses and report dimensions |
@@ -437,7 +437,10 @@ Status as of 2026-11-23. The full, phase-grouped open list with dev-only placeho
 | Catalog/SKUs/pack sizes/prices/taxes | Open |
 | Cutoff and slot windows/capacity | Open |
 | Supplier rates/terms/quality checks | Open |
-| Supply shortfall handling when accepted receipt is below reserved quantity | Open (new; ADR-0007) |
+| Supply shortfall handling when accepted receipt is below reserved quantity | **Engineering rule approved** (never oversell, never change an order silently; raise an operations exception per affected order). Customer-facing remedy still open |
+| Reservation allocation order | **Resolved — eligible on-hand batches first (FEFO/FIFO), then the supply pool** (ADR-0007) |
+| Delivery OTP re-viewable by the customer | **Resolved — encrypted storage, same code re-viewable** (ADR-0010) |
+| Customer-facing refund labels | **Resolved** (`docs/business-decisions.md`) |
 | Minimum order/delivery fee/COD limits | Open |
 | Substitution and cancellation/refund policies | Open |
 | Customer catalog exposure (status + `maxOrderable` is the dev default) | Open for founder revision |
@@ -483,7 +486,7 @@ Supabase sessions may exceed platform secure-store value-size limits. Use a main
 
 ### 13.6 Delivery OTP delivery to the customer (Phase 7)
 
-When an order reaches an eligible delivery state, the customer's order detail screen offers "Show delivery code" through `get-delivery-otp`. The server issues a single-use OTP, stores only its hash with expiry and attempt count, and returns the plaintext only to the authenticated owner. Re-issue is rate-limited and invalidates the previous code. The OTP never appears in push payloads, lock-screen text, logs or ordinary API responses. The rider enters it through `confirm-delivery-otp`. Additional channels (such as SMS) and the OTP length/expiry are founder decisions, held as configurable settings.
+When an order reaches an eligible delivery state, the customer's order detail screen offers "Show delivery code" through `get-delivery-otp`. The server issues a single-use OTP, stores it **encrypted** (key in Supabase Vault) plus a keyed HMAC for verification, with expiry and attempt count, and returns the **same** code to the authenticated owner on every view until it is used, expires, locks or is revoked (ADR-0010). Views are rate-limited. A new code is issued only after expiry, lockout or revocation, and it invalidates the previous code. The OTP never appears in push payloads, lock-screen text, logs or ordinary API responses. The rider enters it through `confirm-delivery-otp`. Additional channels (such as SMS) and the OTP length/expiry are founder decisions, held as configurable settings.
 
 ### 13.7 Rate limits
 

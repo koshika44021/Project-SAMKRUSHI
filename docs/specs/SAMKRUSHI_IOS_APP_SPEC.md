@@ -461,7 +461,7 @@ Requirements:
 - Collect reason.
 - Submit cancellation request to backend (`request-order-cancellation`).
 - Display whether it needs staff approval.
-- Show refund status separately. Backend `refund_status` values are `requested`, `pending` (processing), `processed` (refunded), `failed`, `cancelled` and `manual_review`, with the display mapping in `packages/shared`.
+- Show refund status separately, using the approved labels: `requested` → "Refund request received"; `pending` and `manual_review` → "Refund is being processed"; `processed` → "Refund completed"; `failed` → "Refund could not be processed" (`cancelled` label still open). The display mapping lives in `packages/shared`.
 - Do not call refund complete before payment provider confirmation.
 
 ### 5.18 Substitution
@@ -510,7 +510,7 @@ Requirements:
 
 ### 5.21 Delivery OTP display (master Phase 7)
 
-- On an owned order in an eligible delivery state, order details offers "Show delivery code" through `get-delivery-otp`. The server issues a single-use code, stores only its hash, and returns the plaintext only to the authenticated owner.
+- On an owned order in an eligible delivery state, order details offers "Show delivery code" through `get-delivery-otp`. The server issues a single-use code, stores it encrypted (ADR-0010), returns the same code on every view until used/expired/revoked, and returns the plaintext only to the authenticated owner.
 - Display the code large, VoiceOver-readable and Dynamic Type-safe, with an instruction to share it only with the assigned rider at handover.
 - Re-requesting is rate-limited and invalidates the previous code.
 - Never include the code in push notifications, lock-screen text, logs or analytics. Do not cache it beyond the screen session.

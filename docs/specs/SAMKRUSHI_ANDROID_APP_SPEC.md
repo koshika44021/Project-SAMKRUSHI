@@ -550,7 +550,7 @@ The app must:
 - Show whether staff approval is required.
 - Display refund status independently from order status.
 
-Possible refund states include requested, processing, confirmed/refunded, failed or manual review. These map to the backend `refund_status` values `requested`, `pending` (processing), `processed` (refunded), `failed`, `cancelled` and `manual_review`. The display mapping lives in `packages/shared`.
+Refund status labels (approved 2026-11-23): `requested` → "Refund request received"; `pending` and `manual_review` → "Refund is being processed"; `processed` → "Refund completed"; `failed` → "Refund could not be processed". The label for `cancelled` is still open. The display mapping lives in `packages/shared`.
 
 Never claim a refund is complete before provider confirmation/reconciliation.
 
@@ -602,7 +602,7 @@ Requirements:
 Purpose: give the customer the one-time code that the rider enters as proof of delivery.
 
 - On an owned order in an eligible delivery state (for example out for delivery), order details shows "Show delivery code".
-- The app calls `get-delivery-otp` (Edge Function). The server issues a single-use code, stores only its hash, and returns the plaintext only to the authenticated owner.
+- The app calls `get-delivery-otp` (Edge Function). The server issues a single-use code, stores it encrypted, and returns the same code to the authenticated owner on every view until it is used, expires or is revoked (ADR-0010).
 - Display the code large and accessible (TalkBack-readable, not colour-only), with a short instruction to share it only with the assigned rider at handover.
 - Re-requesting is rate-limited and invalidates the previous code. Explain this before reissuing.
 - Never put the code in push notifications, lock-screen text, logs or analytics. Do not cache it beyond the screen session.

@@ -35,7 +35,7 @@ ATP(product, business_date, zone) =
 ### Reservations
 
 - Each reservation carries `product_id`, `business_date`, `zone_id`, `quantity` (base unit), `status` (`active`, `consumed`, `released`, `expired`), `expires_at`, `order_item_id`, and an optional `batch_id`. A null `batch_id` means a **supply-pool reservation**.
-- `create-order` serializes per (product, business_date, zone) with a transaction-scoped advisory lock, taken in sorted product order to avoid deadlocks. It recomputes ATP under the lock and inserts reservations only if the requested base-unit quantity is ≤ ATP. Allocation order (dev default; founders may revise): eligible on-hand batches first (FEFO, else FIFO), then the business date's supply pool.
+- `create-order` serializes per (product, business_date, zone) with a transaction-scoped advisory lock, taken in sorted product order to avoid deadlocks. It recomputes ATP under the lock and inserts reservations only if the requested base-unit quantity is ≤ ATP. Allocation order (**approved by founders 2026-11-23**): eligible on-hand batches first (FEFO, else FIFO), then the business date's supply pool.
 - Consumption (at the pick/pack point, which is a founder decision) requires a batch reservation. In one transaction it marks the reservation `consumed` and posts one negative `sale` movement.
 
 ### No-double-count conversion (receipt posting, Phase 4)
@@ -45,7 +45,7 @@ In **one transaction**, posting a goods receipt line linked to dated supply reco
 1. Increases `received_against_record` by the received quantity, which reduces open supply.
 2. Creates the batch and posts a `receipt` movement for the **accepted** quantity only, which increases eligible on-hand.
 3. Moves active pool reservations for (product, business_date) onto the new batch, up to the accepted quantity (FEFO/FIFO order of reservation creation).
-4. Leaves any reservations still not covered (because of rejection or short delivery) as pool reservations, and raises a **shortfall exception** for operations if pool reservations exceed the remaining open supply. ATP is floored at 0. How a shortfall is resolved for customers is an open founder decision.
+4. Leaves any reservations still not covered (because of rejection or short delivery) as pool reservations, and raises a **shortfall exception** for operations if pool reservations exceed the remaining open supply. ATP is floored at 0. Approved engineering rule: the system never oversells and never changes an order silently; each affected order gets an operations exception. The customer-facing remedy is still an open founder decision.
 
 When a batch becomes ineligible (hold, recall, expiry), its active reservations move back to the pool in the same transaction, and an exception is raised.
 
