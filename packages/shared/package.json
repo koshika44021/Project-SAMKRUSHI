@@ -10,7 +10,8 @@
     "./api": "./src/api.ts",
     "./money": "./src/money.ts",
     "./quantity": "./src/quantity.ts",
-    "./time": "./src/time.ts"
+    "./time": "./src/time.ts",
+    "./database": "./src/database.types.ts"
   },
   "scripts": {
     "lint": "eslint .",

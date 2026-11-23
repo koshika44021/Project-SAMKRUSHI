@@ -17,7 +17,7 @@ export const samkrushiRules = {
 };
 
 export const ignores = {
-  ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '**/.turbo/**'],
+  ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '**/.turbo/**', '**/*.types.ts'],
 };
 
 /** Base config for runtime-agnostic TypeScript libraries. */

@@ -2,7 +2,7 @@
 
 Farm-to-home fresh produce platform for an initial Hyderabad pilot. Staff record farmer-confirmed supply and run operations from a web dashboard. Customers browse, order and track deliveries in a mobile app.
 
-**Status:** master Phase 1 (monorepo foundation) on branch `release-m1-2027.1`. No business modules yet. Release 1 targets **Android**.
+**Status:** master Phase 2 (database and security) on branch `release-m1-2027.1`. No business UI yet. Release 1 targets **Android**.
 
 ## Repository layout
 
@@ -13,7 +13,7 @@ apps/
 packages/
   shared/           Runtime-agnostic Zod schemas, API envelope, money/quantity/date helpers
   config/           Shared tsconfig bases and ESLint flat config
-supabase/           Postgres migrations, RLS tests, dev-only seed, Edge Functions (from Phase 2)
+supabase/           Postgres migrations, RLS/pgTAP tests, dev-only seed, Edge Functions
 docs/
   specs/            Product specifications (master spec governs — ADR-0001)
   adr/              Architecture & business decision records
@@ -38,15 +38,17 @@ Full setup, including Android builds, EAS and a Docker-compatible runtime for lo
 
 ## Commands
 
-| Command                                                    | What it does                                                |
-| ---------------------------------------------------------- | ----------------------------------------------------------- |
-| `pnpm check`                                               | `turbo run lint typecheck test`                             |
-| `pnpm build`                                               | Production build of every workspace (cached by Turborepo)   |
-| `pnpm format` / `pnpm format:check`                        | Prettier                                                    |
-| `pnpm turbo run test:e2e --filter=@samkrushi/admin-web`    | Build, then run the Playwright smoke tests                  |
-| `pnpm --filter @samkrushi/mobile build:android:dev`        | EAS development build for Android                           |
-| `pnpm --filter @samkrushi/mobile build:android:production` | Store AAB (requires `ANDROID_APPLICATION_ID`)               |
-| `pnpm exec supabase start`                                 | Local Supabase stack (requires a Docker-compatible runtime) |
+| Command                                                    | What it does                                                                      |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `pnpm check`                                               | `turbo run lint typecheck test`                                                   |
+| `pnpm build`                                               | Production build of every workspace (cached by Turborepo)                         |
+| `pnpm format` / `pnpm format:check`                        | Prettier                                                                          |
+| `pnpm turbo run test:e2e --filter=@samkrushi/admin-web`    | Build, then run the Playwright smoke tests                                        |
+| `pnpm --filter @samkrushi/mobile build:android:dev`        | EAS development build for Android                                                 |
+| `pnpm --filter @samkrushi/mobile build:android:production` | Store AAB (requires `ANDROID_APPLICATION_ID`)                                     |
+| `pnpm db:start` / `pnpm db:reset`                          | Local Supabase stack / rebuild from an empty database (Docker-compatible runtime) |
+| `pnpm db:test`                                             | pgTAP database tests (RLS, role matrix, constraints, audit, availability)         |
+| `pnpm db:types`                                            | Regenerate DB types from the migrated schema into `packages/shared`               |
 
 ## Ground rules
 
@@ -61,15 +63,15 @@ These come from the master spec, §5, §8 and §11.
 
 ## Phase plan
 
-| Phase | Deliverable                                                                              | State                                    |
-| ----- | ---------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 0     | Repository inspection and plan                                                           | Done                                     |
-| 1     | Monorepo foundation                                                                      | **In review**                            |
-| 2     | Database and security (migrations, RLS, role-matrix tests, generated types)              | Next (needs a Docker-compatible runtime) |
-| 3     | Admin MVP (staff auth, farmers, catalog seed, dated supply, audit, customer catalog API) |                                          |
-| 4     | Procurement and inventory                                                                |                                          |
-| 5     | Customer browse and cart (mobile)                                                        |                                          |
-| 6     | Checkout and payments (Razorpay Hosted Checkout first)                                   |                                          |
-| 7     | Fulfilment, dispatch, rider OTP                                                          |                                          |
-| 8     | Customer orders and support                                                              |                                          |
-| 9     | Production hardening and store release                                                   |                                          |
+| Phase | Deliverable                                                                              | State         |
+| ----- | ---------------------------------------------------------------------------------------- | ------------- |
+| 0     | Repository inspection and plan                                                           | Done          |
+| 1     | Monorepo foundation                                                                      | Done          |
+| 2     | Database and security (migrations, RLS, role-matrix tests, generated types)              | **In review** |
+| 3     | Admin MVP (staff auth, farmers, catalog seed, dated supply, audit, customer catalog API) |               |
+| 4     | Procurement and inventory                                                                |               |
+| 5     | Customer browse and cart (mobile)                                                        |               |
+| 6     | Checkout and payments (Razorpay Hosted Checkout first)                                   |               |
+| 7     | Fulfilment, dispatch, rider OTP                                                          |               |
+| 8     | Customer orders and support                                                              |               |
+| 9     | Production hardening and store release                                                   |               |

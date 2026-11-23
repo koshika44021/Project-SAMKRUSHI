@@ -13,6 +13,8 @@ Accepted decisions that amend or clarify the specifications in `docs/specs/`. Pr
 | [0007](0007-availability-and-atp.md)                  | Availability and ATP                                                                                                                  | Accepted | 2026-11-23 | Master §1.1, §4.2–§4.5                |
 | [0008](0008-payment-checkout-mode.md)                 | Payment checkout mode (Hosted/Standard Checkout first)                                                                                | Accepted | 2026-11-23 | Master §4.3, §7                       |
 | [0009](0009-mobile-release-configuration.md)          | Mobile release configuration (Android release 1 first; iOS config from Phase 1; iOS store release follows)                            | Accepted | 2026-11-23 | Master §2, §10; ANDROID §6.6; IOS §12 |
+| [0010](0010-delivery-otp-storage.md)                  | Re-viewable delivery OTP storage (encrypted, same code re-viewable)                                                                   | Accepted | 2026-11-23 | Master §4.5, §13.6                    |
+| [0011](0011-database-security-model.md)               | Database security model (RLS everywhere, read-only client roles, trusted-server mutations, trigger audit)                             | Accepted | 2026-11-23 | Master §3, §5, §8                     |
 
 ## Conventions
 

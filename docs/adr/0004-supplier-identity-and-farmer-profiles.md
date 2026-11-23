@@ -27,6 +27,14 @@
    - the farmer code format (dev default `SAM-FRM-000001` style);
    - whether viewer may see farmer phones/photos.
 
+### Implementation note (Phase 2, 2026-11-23)
+
+Points 1 and 3 above list address and phone fields on both tables. To keep one copy of each fact, the Phase 2 schema stores them as follows:
+
+- **`suppliers`** holds the location fields shared by every supplier type: `address_line`, `village_locality`, `mandal`, `district`, `state`, `pin_code`. It also holds the verification fields and the deactivation reason.
+- **`supplier_contacts`** holds phones and emails (`primary` / `secondary` / `authorized`, E.164). At most one active primary and one active secondary per supplier. Duplicate phones across suppliers are allowed (warn, never merge). Reads are limited to `super_admin`, `operations_admin` and `finance_admin`; viewers get masked numbers through `supplier_contact_summaries()` (ADR-0011).
+- **`farmer_profiles`** holds only farmer-specific fields: `land_area_value` + `land_area_unit` (stored together) and `photo_storage_key`. A composite foreign key `(supplier_id, supplier_type = 'farmer')` guarantees the profile can only attach to a farmer, and a farmer with a profile cannot change type.
+
 ## Consequences
 
 - Procurement, receipts, batches and supply all join on `supplier_id`, so traceability from farmer statement to batch to order is possible.

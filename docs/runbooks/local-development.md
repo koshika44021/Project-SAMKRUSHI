@@ -51,24 +51,26 @@ iOS builds need macOS and Xcode, so on Windows use EAS (`pnpm build:ios:dev` pro
 
 Config check without a device: `APP_VARIANT=preview pnpm --filter @samkrushi/mobile exec expo config --type public`.
 
-## 4. Supabase (`supabase/`) — from Phase 2
+## 4. Supabase (`supabase/`)
 
-Install **one** Docker-compatible container runtime:
-
-- **Rancher Desktop** (free; choose the `dockerd (moby)` engine), or
-- **Podman Desktop** (free; enable Docker API compatibility), or
-- **Docker Desktop** (check the licence terms for organisations above the free-use threshold).
-
-Use the WSL 2 backend on Windows. Then:
+Install **one** Docker-compatible container runtime: Docker Desktop (check the licence terms for organisations above the free-use threshold), Rancher Desktop (`dockerd (moby)` engine) or Podman Desktop (Docker API compatibility on). Use the WSL 2 backend on Windows, and make sure the engine is running before you start.
 
 ```bash
-pnpm exec supabase start        # local Postgres 17, Auth, Storage, Edge runtime, Studio
-pnpm exec supabase db reset     # re-applies migrations + dev-only seed from an empty DB
-pnpm exec supabase test db      # pgTAP RLS / role-matrix tests (Phase 2+)
+pnpm db:start          # first run pulls images (several minutes)
+pnpm db:reset          # rebuild from an empty database: all migrations (+ dev-only seed)
+pnpm db:test           # pgTAP: RLS, role matrix incl. viewer, constraints, audit, availability
+pnpm db:lint
+pnpm db:types          # regenerate packages/shared/src/database.types.ts after schema changes
 pnpm exec supabase stop
 ```
 
-Never point local tooling at production. Seeds in `supabase/seed/` are synthetic and `DEV`-labelled.
+Faster minimal stack (what CI uses):
+`pnpm exec supabase start -x realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor`.
+Keep `kong`: the PostgREST health check goes through it.
+
+Local URLs: API `http://127.0.0.1:54321`, DB `postgresql://postgres:postgres@127.0.0.1:54322/postgres`, Studio `http://127.0.0.1:54323`. The keys `supabase start` prints are local-only demo keys. Never point local tooling at production. Seeds in `supabase/seed/` are synthetic and `DEV`-labelled.
+
+Schema workflow: `supabase/README.md`. Security model: ADR-0011.
 
 ## 5. Troubleshooting
 

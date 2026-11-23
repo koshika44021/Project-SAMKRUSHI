@@ -14,7 +14,13 @@
     "test": "turbo run test",
     "check": "turbo run lint typecheck test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:lint": "supabase db lint --level warning --fail-on error",
+    "db:types": "node scripts/gen-db-types.mjs",
+    "db:types:check": "node scripts/gen-db-types.mjs --check"
   },
   "devEngines": {
     "runtime": {
