@@ -1,0 +1,55 @@
+{
+  "name": "@samkrushi/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --ci",
+    "doctor": "expo-doctor",
+    "config:android": "expo config --type public --json",
+    "build:android:dev": "eas build --platform android --profile development",
+    "build:android:preview": "eas build --platform android --profile preview",
+    "build:android:production": "eas build --platform android --profile production",
+    "build:ios:dev": "eas build --platform ios --profile development",
+    "build:ios:preview": "eas build --platform ios --profile preview",
+    "build:ios:production": "eas build --platform ios --profile production",
+    "submit:android": "eas submit --platform android --profile production"
+  },
+  "dependencies": {
+    "@samkrushi/shared": "workspace:*",
+    "expo": "~58.0.26",
+    "expo-constants": "~58.0.16",
+    "expo-dev-client": "~58.0.21",
+    "expo-linking": "~58.0.17",
+    "expo-router": "~58.0.32",
+    "expo-splash-screen": "~58.0.14",
+    "expo-status-bar": "~58.0.5",
+    "expo-system-ui": "~58.0.7",
+    "react": "catalog:",
+    "react-native": "0.88.1",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-screens": "~4.30.1",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@react-native/jest-preset": "^0.88.1",
+    "@samkrushi/config": "workspace:*",
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "^30.0.0",
+    "@types/react": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-expo": "~58.0.4",
+    "jest": "^30.5.2",
+    "jest-expo": "~58.0.15",
+    "test-renderer": "^1.0.0",
+    "typescript": "catalog:"
+  },
+  "jest": {
+    "preset": "jest-expo"
+  }
+}

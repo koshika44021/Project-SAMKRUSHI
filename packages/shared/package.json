@@ -1,0 +1,29 @@
+{
+  "name": "@samkrushi/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Runtime-agnostic Zod schemas, domain types, constants and formatters shared by admin-web, mobile and Supabase Edge Functions.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts",
+    "./money": "./src/money.ts",
+    "./quantity": "./src/quantity.ts",
+    "./time": "./src/time.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@samkrushi/config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

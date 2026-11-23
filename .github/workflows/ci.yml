@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'release-*']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  EXPO_NO_TELEMETRY: '1'
+  TURBO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm turbo run lint typecheck test build
+      - name: Resolve Expo config (development and preview variants)
+        working-directory: apps/mobile
+        run: |
+          APP_VARIANT=development pnpm exec expo config --type public --json > /dev/null
+          APP_VARIANT=preview pnpm exec expo config --type public --json > /dev/null
+      - name: Bundle Android JS (Hermes)
+        working-directory: apps/mobile
+        run: pnpm exec expo export --platform android --output-dir "$RUNNER_TEMP/expo-android"
+
+  e2e-admin-web:
+    name: Admin web E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: check
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @samkrushi/admin-web exec playwright install --with-deps chromium
+      - run: pnpm turbo run test:e2e --filter=@samkrushi/admin-web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/admin-web/playwright-report
+          retention-days: 7
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true # advisory until a triage policy is agreed
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm audit --prod --audit-level high

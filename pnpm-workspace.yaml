@@ -1,0 +1,49 @@
+# SAMKRUSHI pnpm workspace — see docs/adr/0002-toolchain-and-monorepo.md
+packages:
+  - apps/*
+  - packages/*
+
+# Single source of truth for versions shared across apps/packages.
+# Reference from package.json with "catalog:". React is pinned exactly to the
+# version Expo SDK 58 requires; only one React may exist in the workspace.
+catalog:
+  react: 19.3.0
+  react-dom: 19.3.0
+  '@types/react': ~19.3.0
+  '@types/react-dom': ~19.3.0
+  '@types/node': ^24.0.0
+  typescript: ~6.0.3
+  zod: ^4.6.7
+  eslint: ^9.39.5
+  '@eslint/js': ^9.39.0
+  typescript-eslint: ^8.73.0
+  globals: ^17.14.0
+  prettier: ^3.10.1
+  vitest: ^5.1.1
+
+# Force every transitive React onto the catalog version (prevents duplicate React).
+overrides:
+  react: 'catalog:'
+  react-dom: 'catalog:'
+
+# --- Resolution / layout -----------------------------------------------------
+nodeLinker: isolated # strict, disk-efficient symlinked layout (Expo SDK 54+ supports it)
+autoInstallPeers: true
+dedupePeerDependents: true # share one copy of packages whose peers resolve identically
+linkWorkspacePackages: true
+engineStrict: true # refuse to install with a non-Node-24 runtime
+
+# --- Supply-chain protection ---------------------------------------------------
+minimumReleaseAge: 1440 # never install a version younger than 24h
+trustPolicy: no-downgrade # fail if a package's publish provenance weakens
+blockExoticSubdeps: true # transitive deps must come from the registry
+strictDepBuilds: true # unreviewed postinstall scripts fail the install
+
+# Packages explicitly allowed to run install/build scripts (reviewed).
+allowBuilds:
+  esbuild: true
+  sharp: true
+  supabase: true
+  unrs-resolver: true
+  # Ships prebuilt platform binaries; its node-gyp fallback script is not needed.
+  '@parcel/watcher': false

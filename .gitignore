@@ -1,0 +1,54 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds / caches
+.turbo/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# expo / react native
+.expo/
+.expo-shared/
+apps/mobile/android/
+apps/mobile/ios/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.apk
+*.aab
+*.ipa
+google-services.json
+GoogleService-Info.plist
+
+# testing
+playwright-report/
+test-results/
+blob-report/
+
+# supabase local state
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# env & secrets — only *.example files are committed
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/

@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Neutral placeholder tokens — replace with approved brand palette (founder decision). */
+  --color-brand-600: oklch(0.52 0.12 150);
+  --color-brand-700: oklch(0.45 0.11 150);
+  --font-sans: ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}

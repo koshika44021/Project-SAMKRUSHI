@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "SAMKRUSHI runtime-agnostic library (Node, browser, React Native, Deno)",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "types": []
+  }
+}

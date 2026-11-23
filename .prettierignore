@@ -1,0 +1,13 @@
+pnpm-lock.yaml
+node_modules
+.next
+.turbo
+.expo
+dist
+coverage
+playwright-report
+test-results
+docs/specs
+supabase/.temp
+apps/mobile/android
+apps/mobile/ios
