@@ -274,6 +274,21 @@ select tests.as_('customer');
 select throws_ok($$select public.record_staff_login()$$, 'PT403', null, 'customers cannot stamp a staff login');
 select tests.clear_authentication();
 
+-- ------------------------------------------------------------ staff auth events
+select tests.as_('super');
+select lives_ok($$select public.admin_record_staff_auth_event((select user_id from actors where label = 'newstaff'), 'password_reset', 'DEV forgot password', 'req-reset')$$,
+  'super_admin records an admin-assisted password reset');
+select throws_ok($$select public.admin_record_staff_auth_event((select user_id from actors where label = 'newstaff'), 'drop_tables', 'DEV x')$$,
+  'PT422', null, 'unknown staff auth events are rejected');
+select tests.clear_authentication();
+select results_eq($$select action, actor_role, reason, request_id from public.audit_logs where action = 'staff_auth.password_reset'$$,
+  $$values ('staff_auth.password_reset'::text, 'super_admin'::text, 'DEV forgot password'::text, 'req-reset'::text)$$,
+  'the Auth-side event is audited');
+select tests.as_('ops');
+select throws_ok($$select public.admin_record_staff_auth_event((select user_id from actors where label = 'newstaff'), 'password_reset', 'DEV x')$$,
+  'PT403', null, 'only super_admin records staff auth events');
+select tests.clear_authentication();
+
 -- ------------------------------------------------------------ rate limiter
 select tests.as_('ops');
 select throws_ok($$select * from public.consume_rate_limit('staff_login', 'x', 2, 60)$$, '42501', null,

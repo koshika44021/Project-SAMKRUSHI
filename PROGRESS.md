@@ -34,19 +34,19 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 - [x] 3.4 Dev-only seed (`supabase/seed/`): synthetic `DEV` categories, products, SKUs, placeholder prices and confirmation sources. Local storage buckets in `config.toml`.
 - [x] 3.5 Bootstrap script for the first `super_admin` (env-supplied credentials; refuses if one exists)
 - [x] 3.6 Shared Zod contracts in `packages/shared` (farmer, supply, staff, catalog API), with unit tests
-- [ ] 3.7 admin-web auth:
+- [x] 3.7 admin-web auth:
   - `@supabase/ssr` HTTP-only cookies, `proxy.ts` session refresh plus nonce CSP;
   - login/logout, generic errors, rate limit;
   - inactive and customer sessions rejected.
-- [ ] 3.8 admin-web shell: role-aware navigation, server IST business date in the header, shared UI components (table, pagination, forms, dialogs, states)
-- [ ] 3.9 Overview dashboard widgets (WEB_ADMIN §5 MVP list)
-- [ ] 3.10 Farmers:
+- [x] 3.8 admin-web shell: role-aware navigation, server IST business date in the header, shared UI components (table, pagination, forms, dialogs, states)
+- [x] 3.9 Overview dashboard widgets (WEB_ADMIN §5 MVP list)
+- [x] 3.10 Farmers:
   - list (search name/code/phone, filters, pagination, sorting), register, detail, edit, deactivate/reactivate;
   - duplicate-phone warning;
   - private photo upload (sniffed, re-encoded, metadata stripped) with signed URLs; viewer hides photos and masks phones.
-- [ ] 3.11 Products & Availability: seeded catalog view, supply entry/edit/deactivate (reason + version), views by date/farmer/product/status, history, aggregation via `product_availability()`
-- [ ] 3.12 Staff/Users (super_admin): create staff, roles, deactivate (Auth ban + session revoke), reactivate, admin-assisted password reset
-- [ ] 3.13 Audit history (super_admin): filters, pagination
+- [x] 3.11 Products & Availability: seeded catalog view, supply entry/edit/deactivate (reason + version), views by date/farmer/product/status, history, aggregation via `product_availability()`
+- [x] 3.12 Staff/Users (super_admin): create staff, roles, deactivate (Auth ban + session revoke), reactivate, admin-assisted password reset
+- [x] 3.13 Audit history (super_admin): filters, pagination
 - [ ] 3.14 Edge Functions `get-catalog`, `get-product-detail`, `health`: shared envelope, status + `maxOrderable` only, listable filter
 - [ ] 3.15 Integration tests (supabase-js against the local stack: RPC authz, Edge Functions)
 - [ ] 3.16 Playwright E2E for the WEB_ADMIN §19 MVP acceptance criteria 1–11
@@ -54,12 +54,15 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 
 ## In progress / partially done
 
-- Nothing half-done. 3.1–3.3 committed.
+- admin-web screens 3.7–3.13 are written, typechecked and linted, but **not yet exercised end-to-end**; Playwright E2E is pending (3.16).
+- Supply evidence upload UI is deferred. The RPC accepts `p_evidence_storage_key` (bucket `supply-evidence`, prefix `supply/`), but there is no viewer RPC yet.
+- Sweep job for orphaned storage objects (master §13.1): not built. Replaced photos are deleted immediately by the server action instead.
 
 ## Next actions
 
-1. 3.7: admin-web auth: `src/lib/env.ts`, `src/lib/supabase/{server,admin}.ts`, `src/proxy.ts` (session refresh + nonce CSP), login/logout, `/account/password`.
-2. 3.8: dashboard shell and UI components.
+1. 3.16 (moved first): Playwright E2E in `apps/admin-web/e2e/` with a global setup that creates `e2e-*` users through the Auth admin API. Fix whatever it finds.
+2. 3.14: Edge Functions `get-catalog`, `get-product-detail`, `health`.
+3. 3.15: integration tests.
 
 ## Environment notes (Windows dev machine)
 
@@ -111,6 +114,13 @@ pnpm turbo run test:e2e --filter=@samkrushi/admin-web
   - `catalog.ts`: customer API contract, status only, no raw quantities.
 
   96 unit tests passing.
+
+- **2026-11-24:** Migration `20261124090300_staff_auth_events.sql` (audited Auth-side staff events). **pgTAP: 688.**
+- **2026-11-24:** admin-web 3.7–3.11:
+  - `src/proxy.ts`: per-request CSP nonce, session refresh, request id, redirect to `/login`.
+  - `src/lib/{env,supabase/*,auth/session,server/*}.ts`; login/logout with rate limit and generic errors; `/account/password` forced change.
+  - Dashboard shell (role-aware nav, IST date), Overview, Farmers (list/register/detail/edit/status/photo with signed URLs), Products & Availability (aggregation, supply list/create/edit/deactivate).
+  - Local env: `apps/admin-web/.env.local` (git-ignored) holds the local keys from `supabase status`.
 
 ## Open founder decisions that affect Phase 3
 

@@ -3,8 +3,9 @@ import type { NextConfig } from 'next';
 const isProduction = process.env.NODE_ENV === 'production';
 
 /**
- * Baseline security headers. A nonce-based Content-Security-Policy is added
- * with authentication in Phase 3; `frame-ancestors` is enforced now.
+ * Baseline security headers. The nonce-based Content-Security-Policy is set
+ * per request in src/proxy.ts; this static policy covers routes the proxy
+ * skips (e.g. /api/health).
  */
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -26,6 +27,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   typedRoutes: true,
   transpilePackages: ['@samkrushi/shared'],
+  experimental: {
+    serverActions: {
+      // Farmer photo uploads (5 MB dev limit) plus multipart overhead.
+      bodySizeLimit: '6mb',
+    },
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

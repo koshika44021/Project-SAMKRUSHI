@@ -918,6 +918,10 @@ export type Database = {
         Returns: Json;
       };
       admin_product_availability: { Args: { p_business_date: string }; Returns: Json };
+      admin_record_staff_auth_event: {
+        Args: { p_event: string; p_reason: string; p_request_id?: string; p_user_id: string };
+        Returns: undefined;
+      };
       admin_register_staff: {
         Args: {
           p_full_name: string;
