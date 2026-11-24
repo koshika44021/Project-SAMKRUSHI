@@ -101,7 +101,7 @@ jobs:
       - run: pnpm --filter @samkrushi/admin-web exec playwright install --with-deps chromium
       - name: Admin web E2E (production build)
         run: pnpm turbo run test:e2e --filter=@samkrushi/admin-web
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-artifacts
