@@ -7,9 +7,15 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./access": "./src/access.ts",
     "./api": "./src/api.ts",
+    "./catalog": "./src/catalog.ts",
+    "./farmer": "./src/farmer.ts",
     "./money": "./src/money.ts",
+    "./phone": "./src/phone.ts",
     "./quantity": "./src/quantity.ts",
+    "./staff": "./src/staff.ts",
+    "./supply": "./src/supply.ts",
     "./time": "./src/time.ts",
     "./database": "./src/database.types.ts"
   },

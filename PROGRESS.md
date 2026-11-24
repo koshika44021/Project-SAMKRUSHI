@@ -33,7 +33,7 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 - [x] 3.3 pgTAP tests for the RPCs (role checks, optimistic concurrency, audit context, duplicate phone, rate limit)
 - [x] 3.4 Dev-only seed (`supabase/seed/`): synthetic `DEV` categories, products, SKUs, placeholder prices and confirmation sources. Local storage buckets in `config.toml`.
 - [x] 3.5 Bootstrap script for the first `super_admin` (env-supplied credentials; refuses if one exists)
-- [ ] 3.6 Shared Zod contracts in `packages/shared` (farmer, supply, staff, catalog API), with unit tests
+- [x] 3.6 Shared Zod contracts in `packages/shared` (farmer, supply, staff, catalog API), with unit tests
 - [ ] 3.7 admin-web auth:
   - `@supabase/ssr` HTTP-only cookies, `proxy.ts` session refresh plus nonce CSP;
   - login/logout, generic errors, rate limit;
@@ -58,8 +58,8 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 
 ## Next actions
 
-1. 3.6: shared Zod contracts in `packages/shared/src/` (`farmer.ts`, `supply.ts`, `staff.ts`, `catalog.ts`), with tests.
-2. 3.7: admin-web Supabase clients, `proxy.ts`, login/logout.
+1. 3.7: admin-web auth: `src/lib/env.ts`, `src/lib/supabase/{server,admin}.ts`, `src/proxy.ts` (session refresh + nonce CSP), login/logout, `/account/password`.
+2. 3.8: dashboard shell and UI components.
 
 ## Environment notes (Windows dev machine)
 
@@ -102,6 +102,15 @@ pnpm turbo run test:e2e --filter=@samkrushi/admin-web
   - Local buckets `farmer-photos`, `supply-evidence` (private) and `product-images` (public) in `config.toml`.
   - Migration `20261124090200_bootstrap_super_admin.sql` plus `scripts/bootstrap-super-admin.mjs` (`pnpm bootstrap:super-admin`; refuses if a super_admin exists; rolls back the Auth user on failure).
   - Tests made independent of seed data and of pre-existing local users. Test `007_bootstrap.test.sql` added. **pgTAP: 684 passing.** Deps added: `@supabase/supabase-js` 2.119.2 and `@supabase/ssr` 0.12.7 (catalog), react-hook-form, `@hookform/resolvers` ~7.0.8, sharp, server-only.
+
+- **2026-11-24:** 3.6 shared contracts in `packages/shared/src/`:
+  - `access.ts`: roles and UI capability map;
+  - `phone.ts`: Indian mobile → E.164;
+  - `farmer.ts`: `FARMER_FIELD_RULES` dev defaults, create/update/status/list schemas, photo rules;
+  - `supply.ts`, `staff.ts`: password policy, admin-assisted reset;
+  - `catalog.ts`: customer API contract, status only, no raw quantities.
+
+  96 unit tests passing.
 
 ## Open founder decisions that affect Phase 3
 
