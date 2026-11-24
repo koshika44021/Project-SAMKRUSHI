@@ -76,7 +76,15 @@ Nothing half-done. Known follow-ups, deliberately deferred and tracked:
   export ANDROID_HOME="C:\\Users\\c9c4hp\\AppData\\Local\\Android\\Sdk"
   export JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStoreType=Windows-ROOT"   # corporate TLS proxy (Gradle)
   ```
-- Long paths enabled (2026-11-24). For local Android builds, write `apps/mobile/android/local.properties` as `sdk.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk` (forward slashes). Afterwards run `gradlew --stop`, because Gradle daemons hold a lot of RAM.
+- **The local Android native build still fails** after long paths were enabled (2026-11-24):
+  - Error: `react-native-worklets` C++ step, `ninja: manifest 'build.ninja' still dirty after 100 tries`.
+  - Cause: the SDK's CMake 3.22.1 bundles ninja 1.10.2, which is not long-path aware (ninja ≥ 1.12 is), and generated `.cxx` paths reach 288 characters.
+  - Fix options:
+    - (a) Android Studio → SDK Manager → SDK Tools → install a newer CMake (≥ 3.30, bundles ninja ≥ 1.12), then add `cmake.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk/cmake/<version>` to `apps/mobile/android/local.properties`;
+    - (b) build from a short drive letter (`subst S: <repo path>`);
+    - (c) use EAS cloud builds, which are Linux and unaffected.
+  - `expo export` (JS bundle) and `expo prebuild` both work.
+- For local Android builds, write `apps/mobile/android/local.properties` as `sdk.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk` (forward slashes). Afterwards run `gradlew --stop`, because Gradle daemons hold a lot of RAM.
 - pnpm runs Node 24.22.3 automatically (`devEngines.runtime`). The machine's default Node is 26; that's fine.
 - Bash heredocs containing non-ASCII characters (₹, ⇔) break in this shell. Write such files with an editor tool instead.
 
