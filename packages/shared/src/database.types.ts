@@ -1001,6 +1001,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      bootstrap_first_super_admin: {
+        Args: { p_full_name: string; p_user_id: string };
+        Returns: Json;
+      };
       consume_rate_limit: {
         Args: { p_bucket: string; p_key: string; p_limit: number; p_window_seconds: number };
         Returns: {

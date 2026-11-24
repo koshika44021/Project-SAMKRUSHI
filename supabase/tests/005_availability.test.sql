@@ -146,7 +146,8 @@ values
 update public.product_skus set is_active = false where id = '00000000-0000-0000-0000-0000000000b6';
 
 select tests.authenticate_as((select staff_id from ctx));
-create temporary table skus as select * from public.sku_availability((select d from ctx));
+create temporary table skus as select * from public.sku_availability((select d from ctx))
+  where sku_code like 'DEV-%';
 
 select results_eq(
   $$select sku_code, max_orderable, availability_status from skus order by sku_code$$,
@@ -195,7 +196,8 @@ select is(
   1999999999.998::numeric, 'large multi-supplier totals are exact and do not overflow'
 );
 select is(
-  (select count(*)::int from public.product_availability((select d from ctx))),
+  (select count(*)::int from public.product_availability((select d from ctx))
+    where product_id::text like '00000000-0000-0000-0000-0000000000a%'),
   4, 'other products are still returned alongside the large total'
 );
 select tests.clear_authentication();

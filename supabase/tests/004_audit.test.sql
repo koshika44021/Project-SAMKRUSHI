@@ -107,7 +107,7 @@ select is(
 -- Role changes are audited (privilege escalation trail).
 select is(
   (select count(*)::int from public.audit_logs where action = 'user_roles.insert'
-     and after_data ->> 'role' = 'super_admin'),
+     and after_data ->> 'role' = 'super_admin' and after_data ->> 'user_id' = (select staff_id from ctx)::text),
   1, 'role assignments are audited'
 );
 

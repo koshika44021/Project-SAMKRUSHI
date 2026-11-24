@@ -213,12 +213,12 @@ select is(public.admin_list_supply(p_business_date => public.current_business_da
   'supply quantities are decimal strings');
 select is((public.dashboard_overview(public.current_business_date() + 1) ->> 'activeFarmers')::int, 1, 'overview: active farmers');
 select is((public.dashboard_overview(public.current_business_date() + 1) ->> 'activeSupplyRecords')::int, 1, 'overview: active supply records');
-select is(public.dashboard_overview(public.current_business_date() + 1) -> 'lowSupplyProducts' -> 0 ->> 'sellableQuantity', '4',
-  'overview: low supply uses the shared availability function');
-select is(jsonb_array_length(public.dashboard_overview(public.current_business_date() + 1) -> 'zeroSupplyProducts'), 1,
-  'overview: zero-supply products listed');
-select is(public.admin_product_availability(public.current_business_date() + 1) -> 0 ->> 'sellableQuantity', '4',
-  'availability table: sellable quantity as a string');
+select is((select e ->> 'sellableQuantity' from jsonb_array_elements(public.dashboard_overview(public.current_business_date() + 1) -> 'lowSupplyProducts') e
+            where e ->> 'productCode' = 'DEV-A'), '4', 'overview: low supply uses the shared availability function');
+select is((select count(*)::int from jsonb_array_elements(public.dashboard_overview(public.current_business_date() + 1) -> 'zeroSupplyProducts') e
+            where e ->> 'productCode' = 'DEV-B'), 1, 'overview: zero-supply products listed');
+select is((select e ->> 'sellableQuantity' from jsonb_array_elements(public.admin_product_availability(public.current_business_date() + 1)) e
+            where e ->> 'productCode' = 'DEV-A'), '4', 'availability table: sellable quantity as a string');
 select tests.clear_authentication();
 
 select tests.as_('viewer');
@@ -235,6 +235,9 @@ select is((public.dashboard_overview(public.current_business_date()) ->> 'supply
 select tests.clear_authentication();
 
 -- ------------------------------------------------------------ staff
+-- Isolate from pre-existing data (e.g. a locally bootstrapped super_admin).
+delete from public.user_roles
+ where role = 'super_admin' and user_id not in (select user_id from actors where user_id is not null);
 select tests.as_('ops');
 select throws_ok($$select public.admin_register_staff((select user_id from actors where label = 'newstaff'), 'DEV New Staff', '{viewer}')$$,
   'PT403', null, 'only super_admin can register staff');

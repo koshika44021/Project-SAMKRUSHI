@@ -20,6 +20,8 @@ catalog:
   globals: ^17.14.0
   prettier: ^3.10.1
   vitest: ^5.1.1
+  '@supabase/supabase-js': 2.119.2
+  '@supabase/ssr': 0.12.7
 
 # Force every transitive React onto the catalog version (prevents duplicate React).
 overrides:

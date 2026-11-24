@@ -17,7 +17,13 @@
     "next": "16.4.6",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@supabase/supabase-js": "catalog:",
+    "@supabase/ssr": "catalog:",
+    "react-hook-form": "^7.92.0",
+    "@hookform/resolvers": "~7.0.8",
+    "server-only": "^0.0.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
