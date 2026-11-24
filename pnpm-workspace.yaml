@@ -2,6 +2,7 @@
 packages:
   - apps/*
   - packages/*
+  - tests/*
 
 # Single source of truth for versions shared across apps/packages.
 # Reference from package.json with "catalog:". React is pinned exactly to the

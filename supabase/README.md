@@ -15,7 +15,7 @@ Backend for SAMKRUSHI: PostgreSQL schema, RLS, seed data, Edge Functions and dat
 ```bash
 pnpm db:start          # local stack (Docker-compatible runtime required)
 pnpm db:reset          # rebuild from an EMPTY database: all migrations (+ dev seed)
-pnpm db:test           # pgTAP: security baseline, role matrix, constraints, audit, availability
+pnpm db:test           # pgTAP: security baseline, role matrix, constraints, audit, availability, admin RPCs, bootstrap
 pnpm db:lint           # plpgsql_check lint
 pnpm exec supabase db advisors --type all --fail-on warn
 pnpm db:types          # regenerate packages/shared/src/database.types.ts
@@ -40,5 +40,17 @@ Changing the schema:
 | `…120500_suppliers`             | `suppliers` (single identity, verification state), `supplier_contacts` (restricted PII), `farmer_profiles` (1:1, farmer-only), `supplier_contact_summaries()` (masked for viewer)                                                |
 | `…120600_supply`                | `supply_confirmation_sources` (values: founder decision), `supply_confirmations` (dated, base-unit, one active per supplier + product + date, reasoned edits, computed expiry)                                                   |
 | `…120700_availability`          | `product_availability()` (the single ATP implementation, MVP form) and `sku_availability()` (maxOrderable + status)                                                                                                              |
+
+## Phase 3 schema and functions
+
+| Migration                                  | Objects                                                                                                                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `20261124090000_admin_context_and_farmers` | `private.begin_admin_action` (role check + audit context), `rate_limit_counters` + `consume_rate_limit`, farmer code generator, farmer RPCs, duplicate-phone guard |
+| `20261124090100_admin_supply_staff_reads`  | Supply RPCs (exact unit conversion), staff RPCs (last super_admin protected), `record_staff_login`, read RPCs for the dashboard                                    |
+| `20261124090200_bootstrap_super_admin`     | `bootstrap_first_super_admin` (service role only)                                                                                                                  |
+| `20261124090300_staff_auth_events`         | `admin_record_staff_auth_event` (audits Auth-side resets/bans)                                                                                                     |
+| `20261124090400_rate_limit_status`         | `rate_limit_status` (count only failed logins)                                                                                                                     |
+
+Edge Functions (`functions/`): `get-catalog`, `get-product-detail`, `health`. Shared Zod contracts are imported through `functions/deno.json`. Serve them locally with `pnpm exec supabase functions serve --env-file supabase/functions/.env` (copy `.env.example`). Contracts: `docs/api-contracts/`.
 
 Later domains (procurement, batches, reservations, orders, payments, delivery) get their migrations in their own phases.

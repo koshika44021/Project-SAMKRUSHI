@@ -4,6 +4,12 @@ begin;
 \ir _helpers.psql
 select * from no_plan();
 
+-- Isolate from data left by E2E/integration runs: clear audit rows inside this
+-- rolled-back transaction (replica role bypasses the append-only trigger).
+set local session_replication_role = replica;
+delete from public.audit_logs;
+set local session_replication_role = origin;
+
 create temporary table ctx as select tests.create_user('auditor', '{super_admin}', true) as staff_id;
 grant select on ctx to authenticated;
 

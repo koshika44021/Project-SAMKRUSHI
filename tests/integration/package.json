@@ -1,0 +1,24 @@
+{
+  "name": "@samkrushi/integration-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Integration tests against the LOCAL Supabase stack (PostgREST RPC authz, Edge Functions). Requires `pnpm db:start` and `supabase functions serve`.",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:integration": "vitest run"
+  },
+  "dependencies": {
+    "@samkrushi/shared": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@samkrushi/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

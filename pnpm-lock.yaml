@@ -429,6 +429,34 @@ importers:
         specifier: 'catalog:'
         version: 5.1.1(@types/node@24.19.2)(jsdom@26.1.0(supports-color@7.2.0))(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.4))
 
+  tests/integration:
+    dependencies:
+      '@samkrushi/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@supabase/supabase-js':
+        specifier: 'catalog:'
+        version: 2.119.2
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@samkrushi/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      eslint:
+        specifier: 'catalog:'
+        version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.1(@types/node@24.19.2)(jsdom@26.1.0(supports-color@7.2.0))(vite@8.3.8(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.4))
+
 packages:
 
   2g@1.0.1:

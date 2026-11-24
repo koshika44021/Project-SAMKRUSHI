@@ -11,7 +11,7 @@ import { type NextRequest, NextResponse } from 'next/server';
  */
 const PUBLIC_PATHS = ['/login'];
 
-function buildCsp(nonce: string, supabaseUrl: string): string {
+function buildCsp(nonce: string, supabaseUrl: string, isHttps: boolean): string {
   const isDev = process.env.NODE_ENV === 'development';
   const supabaseOrigin = new URL(supabaseUrl).origin;
   return [
@@ -25,7 +25,8 @@ function buildCsp(nonce: string, supabaseUrl: string): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    ...(isDev ? [] : ['upgrade-insecure-requests']),
+    // Only when served over HTTPS (production); local http E2E runs must not be upgraded.
+    ...(isHttps ? ['upgrade-insecure-requests'] : []),
   ].join('; ');
 }
 
@@ -34,7 +35,9 @@ export async function proxy(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '';
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const csp = buildCsp(nonce, supabaseUrl);
+  const isHttps =
+    request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https';
+  const csp = buildCsp(nonce, supabaseUrl, isHttps);
   const incomingId = request.headers.get('x-request-id');
   const requestId =
     incomingId && /^[\w.:-]{1,128}$/.test(incomingId) ? incomingId : crypto.randomUUID();

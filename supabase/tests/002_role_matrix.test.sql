@@ -264,7 +264,7 @@ select throws_ok($$select photo_storage_key from public.farmer_profiles$$, '4250
   'viewer cannot read farmer photo keys');
 select throws_ok($$select evidence_storage_key from public.supply_confirmations$$, '42501', null,
   'viewer cannot read supply evidence keys');
-select is((select has_photo from public.farmer_profiles limit 1), true, 'viewer sees only that a photo exists');
+select is((select has_photo from public.farmer_profiles where supplier_id = '00000000-0000-0000-0000-0000000000f1'), true, 'viewer sees only that a photo exists');
 select is((select count(*)::int from public.staff_display_names(array[(select user_id from actors where label = 'super_admin')])),
   1, 'dashboard staff can resolve actor display names');
 select tests.clear_authentication();

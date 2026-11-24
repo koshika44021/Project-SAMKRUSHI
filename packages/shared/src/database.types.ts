@@ -1043,6 +1043,14 @@ export type Database = {
           product_id: string;
         }[];
       };
+      rate_limit_status: {
+        Args: { p_bucket: string; p_key: string; p_limit: number; p_window_seconds: number };
+        Returns: {
+          allowed: boolean;
+          remaining: number;
+          retry_after_seconds: number;
+        }[];
+      };
       record_staff_login: { Args: Record<PropertyKey, never>; Returns: undefined };
       sku_availability: {
         Args: { p_business_date: string; p_product_ids?: string[]; p_zone_id?: string };

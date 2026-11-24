@@ -2,7 +2,7 @@
 
 Farm-to-home fresh produce platform for an initial Hyderabad pilot. Staff record farmer-confirmed supply and run operations from a web dashboard. Customers browse, order and track deliveries in a mobile app.
 
-**Status:** master Phase 2 (database and security) on branch `release-m1-2027.1`. No business UI yet. Release 1 targets **Android**.
+**Status:** master Phase 3 (admin MVP) on branch `release-m1-2027.1`, in review. Release 1 targets **Android**. Live handover state: [PROGRESS.md](PROGRESS.md).
 
 ## Repository layout
 
@@ -38,17 +38,19 @@ Full setup, including Android builds, EAS and a Docker-compatible runtime for lo
 
 ## Commands
 
-| Command                                                    | What it does                                                                      |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `pnpm check`                                               | `turbo run lint typecheck test`                                                   |
-| `pnpm build`                                               | Production build of every workspace (cached by Turborepo)                         |
-| `pnpm format` / `pnpm format:check`                        | Prettier                                                                          |
-| `pnpm turbo run test:e2e --filter=@samkrushi/admin-web`    | Build, then run the Playwright smoke tests                                        |
-| `pnpm --filter @samkrushi/mobile build:android:dev`        | EAS development build for Android                                                 |
-| `pnpm --filter @samkrushi/mobile build:android:production` | Store AAB (requires `ANDROID_APPLICATION_ID`)                                     |
-| `pnpm db:start` / `pnpm db:reset`                          | Local Supabase stack / rebuild from an empty database (Docker-compatible runtime) |
-| `pnpm db:test`                                             | pgTAP database tests (RLS, role matrix, constraints, audit, availability)         |
-| `pnpm db:types`                                            | Regenerate DB types from the migrated schema into `packages/shared`               |
+| Command                                                    | What it does                                                                           |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm check`                                               | `turbo run lint typecheck test`                                                        |
+| `pnpm build`                                               | Production build of every workspace (cached by Turborepo)                              |
+| `pnpm format` / `pnpm format:check`                        | Prettier                                                                               |
+| `pnpm turbo run test:e2e --filter=@samkrushi/admin-web`    | Build, then run the Playwright smoke tests                                             |
+| `pnpm --filter @samkrushi/mobile build:android:dev`        | EAS development build for Android                                                      |
+| `pnpm --filter @samkrushi/mobile build:android:production` | Store AAB (requires `ANDROID_APPLICATION_ID`)                                          |
+| `pnpm db:start` / `pnpm db:reset`                          | Local Supabase stack / rebuild from an empty database (Docker-compatible runtime)      |
+| `pnpm db:test`                                             | pgTAP database tests (RLS, role matrix, constraints, audit, availability)              |
+| `pnpm bootstrap:super-admin`                               | Create the first super admin from `BOOTSTRAP_ADMIN_*` env vars (refuses if one exists) |
+| `pnpm test:integration`                                    | Integration tests against the local stack (RPC authz, Edge Functions)                  |
+| `pnpm db:types`                                            | Regenerate DB types from the migrated schema into `packages/shared`                    |
 
 ## Ground rules
 
@@ -67,8 +69,8 @@ These come from the master spec, §5, §8 and §11.
 | ----- | ---------------------------------------------------------------------------------------- | ------------- |
 | 0     | Repository inspection and plan                                                           | Done          |
 | 1     | Monorepo foundation                                                                      | Done          |
-| 2     | Database and security (migrations, RLS, role-matrix tests, generated types)              | **In review** |
-| 3     | Admin MVP (staff auth, farmers, catalog seed, dated supply, audit, customer catalog API) |               |
+| 2     | Database and security (migrations, RLS, role-matrix tests, generated types)              | Done          |
+| 3     | Admin MVP (staff auth, farmers, catalog seed, dated supply, audit, customer catalog API) | **In review** |
 | 4     | Procurement and inventory                                                                |               |
 | 5     | Customer browse and cart (mobile)                                                        |               |
 | 6     | Checkout and payments (Razorpay Hosted Checkout first)                                   |               |

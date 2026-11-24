@@ -2,7 +2,7 @@
 
 > **Agents:** read this file first, then `AGENTS.md`. Update it after every task (tick the box, add a changelog line, refresh "Next actions"). If you stop mid-task, record the exact state under "In progress".
 
-**Branch:** `release-m1-2027.1` · **Last updated:** 2026-11-24 · **Current phase:** 3 — Admin MVP (in progress)
+**Branch:** `release-m1-2027.1` · **Last updated:** 2026-11-24 · **Current phase:** 3 — Admin MVP (**complete, awaiting user review**)
 
 ## Phase status (master spec §10)
 
@@ -47,22 +47,24 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 - [x] 3.11 Products & Availability: seeded catalog view, supply entry/edit/deactivate (reason + version), views by date/farmer/product/status, history, aggregation via `product_availability()`
 - [x] 3.12 Staff/Users (super_admin): create staff, roles, deactivate (Auth ban + session revoke), reactivate, admin-assisted password reset
 - [x] 3.13 Audit history (super_admin): filters, pagination
-- [ ] 3.14 Edge Functions `get-catalog`, `get-product-detail`, `health`: shared envelope, status + `maxOrderable` only, listable filter
-- [ ] 3.15 Integration tests (supabase-js against the local stack: RPC authz, Edge Functions)
-- [ ] 3.16 Playwright E2E for the WEB_ADMIN §19 MVP acceptance criteria 1–11
-- [ ] 3.17 Docs (API contracts, runbooks, README), CI updates, commit
+- [x] 3.14 Edge Functions `get-catalog`, `get-product-detail`, `health`: shared envelope, status + `maxOrderable` only, listable filter
+- [x] 3.15 Integration tests (supabase-js against the local stack: RPC authz, Edge Functions)
+- [x] 3.16 Playwright E2E for the WEB_ADMIN §19 MVP acceptance criteria 1–11
+- [x] 3.17 Docs (API contracts, runbooks, README), CI updates, commit
 
 ## In progress / partially done
 
-- admin-web screens 3.7–3.13 are written, typechecked and linted, but **not yet exercised end-to-end**; Playwright E2E is pending (3.16).
-- Supply evidence upload UI is deferred. The RPC accepts `p_evidence_storage_key` (bucket `supply-evidence`, prefix `supply/`), but there is no viewer RPC yet.
-- Sweep job for orphaned storage objects (master §13.1): not built. Replaced photos are deleted immediately by the server action instead.
+Nothing half-done. Known follow-ups, deliberately deferred and tracked:
+
+- Supply evidence upload/view UI. The RPC accepts `p_evidence_storage_key` (bucket `supply-evidence`); there is no viewer RPC yet.
+- Scheduled sweep of orphaned storage objects (master §13.1). Replaced photos are deleted immediately instead.
+- The local gateway adds `Access-Control-Allow-Origin: *` to functions. Verify CORS on the hosted project.
+- Supabase-js `.select('*')` on `farmer_profiles` / `supply_confirmations` fails by design (column grants hide private keys). Always list columns.
 
 ## Next actions
 
-1. 3.16 (moved first): Playwright E2E in `apps/admin-web/e2e/` with a global setup that creates `e2e-*` users through the Auth admin API. Fix whatever it finds.
-2. 3.14: Edge Functions `get-catalog`, `get-product-detail`, `health`.
-3. 3.15: integration tests.
+1. **Wait for the user's Phase 3 review.** Do not start Phase 4 without approval.
+2. Phase 4 (procurement/inventory) needs founder input first: supply shortfall customer remedy, procurement and quality policy, sell-by/expiry policy, packing facility (`docs/business-decisions.md` "Blocks Phase 4").
 
 ## Environment notes (Windows dev machine)
 
@@ -86,8 +88,19 @@ pnpm check                 # lint + typecheck + unit tests (Turborepo)
 pnpm build
 pnpm db:reset && pnpm db:test && pnpm db:lint && pnpm db:types:check
 pnpm exec supabase db advisors --type all --fail-on warn
+pnpm exec supabase functions serve --env-file supabase/functions/.env   # separate terminal
+pnpm test:integration
 pnpm turbo run test:e2e --filter=@samkrushi/admin-web
 ```
+
+Last full verification (2026-11-24):
+
+- `pnpm check` + build: 12/12 tasks
+- pgTAP: **691**
+- unit: **101** shared + 3 admin-web + 2 mobile
+- integration: **12**
+- Playwright E2E: **24**
+- advisors: clean
 
 ## Changelog
 
@@ -121,6 +134,23 @@ pnpm turbo run test:e2e --filter=@samkrushi/admin-web
   - `src/lib/{env,supabase/*,auth/session,server/*}.ts`; login/logout with rate limit and generic errors; `/account/password` forced change.
   - Dashboard shell (role-aware nav, IST date), Overview, Farmers (list/register/detail/edit/status/photo with signed URLs), Products & Availability (aggregation, supply list/create/edit/deactivate).
   - Local env: `apps/admin-web/.env.local` (git-ignored) holds the local keys from `supabase status`.
+
+- **2026-11-24:** 3.14 Edge Functions:
+  - `supabase/functions/{get-catalog,get-product-detail,health}` with `_shared/http.ts` (envelope, request id, CORS allow-list) and `_shared/catalog-service.ts` (service role plus `sku_availability`).
+  - The pure builder `buildCatalogProducts` lives in `packages/shared/src/catalog.ts` and is unit-tested.
+  - Deno imports shared code through `supabase/functions/deno.json`, which works in local serving.
+  - Local serving: `pnpm exec supabase functions serve --env-file supabase/functions/.env` (copy from `.env.example`).
+- **2026-11-24:** 3.15 `tests/integration`: Vitest + supabase-js with real JWTs. **12 passing:** RPC authz, HTTP status mapping, catalog API. Run with `pnpm test:integration` (needs stack and functions running).
+- **2026-11-24:** Migration `20261124090400_rate_limit_status.sql`: login now counts only FAILED attempts (status check, then consume on failure). **pgTAP: 691.**
+- **Gotcha:** test users who created data cannot be deleted (FK history). Test setups reuse accounts: reset password, upsert profile, replace roles.
+- **Gotcha:** the local kong gateway adds `Access-Control-Allow-Origin: *` to function responses. Verify CORS on the hosted project.
+
+- **2026-11-24:** 3.16–3.17. Playwright E2E (`apps/admin-web/e2e/`) covers WEB_ADMIN §19 MVP criteria 1–8, 10 and 11; criterion 9 (customer API) is covered by the integration tests. **24 passing.**
+  - Fixes found by E2E: login rate limit counts only failures; quantities shown canonically ("4", not "4.0"); `upgrade-insecure-requests` only over HTTPS.
+  - Test gotchas: Next's route announcer also has `role=alert` (scope to `main`); `browser.newContext()` inherits `storageState` (pass an empty one); labels of required fields end with " *".
+  - pgTAP tests isolate themselves from leftover local data (rolled-back deletes in replica mode).
+  - CI: new `integration-e2e` job on the full local stack.
+  - Docs: `docs/api-contracts/{customer-catalog,admin-rpcs}.md`, runbooks `super-admin-bootstrap.md` and `storage.md`, updated `local-development.md`, both READMEs.
 
 ## Open founder decisions that affect Phase 3
 

@@ -4,6 +4,14 @@ begin;
 \ir _helpers.psql
 select * from no_plan();
 
+-- Isolate from data left by E2E/integration runs (rolled back at the end).
+set local session_replication_role = replica;
+delete from public.supply_confirmations;
+delete from public.supplier_contacts;
+delete from public.farmer_profiles;
+delete from public.suppliers;
+set local session_replication_role = origin;
+
 create temporary table ctx as
   select tests.create_user('ops_av', '{operations_admin}', true) as staff_id,
          public.current_business_date() as today,

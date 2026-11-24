@@ -21,7 +21,8 @@
     "db:lint": "supabase db lint --level warning --fail-on error",
     "db:types": "node scripts/gen-db-types.mjs",
     "db:types:check": "node scripts/gen-db-types.mjs --check",
-    "bootstrap:super-admin": "node --env-file-if-exists=apps/admin-web/.env.local scripts/bootstrap-super-admin.mjs"
+    "bootstrap:super-admin": "node --env-file-if-exists=apps/admin-web/.env.local scripts/bootstrap-super-admin.mjs",
+    "test:integration": "turbo run test:integration"
   },
   "devEngines": {
     "runtime": {

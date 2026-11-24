@@ -27,6 +27,30 @@ pnpm --filter @samkrushi/admin-web exec playwright install chromium   # first ti
 pnpm turbo run test:e2e --filter=@samkrushi/admin-web  # builds first, then runs Playwright
 ```
 
+### Signing in to the local admin dashboard
+
+1. Start Supabase (section 4), then write `apps/admin-web/.env.local` using the keys from `pnpm exec supabase status -o env`:
+
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<PUBLISHABLE_KEY>
+   SUPABASE_SECRET_KEY=<SECRET_KEY>          # server-only
+   ```
+
+2. Create the first super admin: `pnpm bootstrap:super-admin` with `BOOTSTRAP_ADMIN_*` set (see `docs/runbooks/super-admin-bootstrap.md`). Then sign in at http://localhost:3000/login.
+3. The dev seed provides a synthetic `DEV` catalog. Farmers and supply are entered through the UI.
+
+### Edge Functions and integration tests
+
+```bash
+cp supabase/functions/.env.example supabase/functions/.env
+pnpm exec supabase functions serve --env-file supabase/functions/.env   # keep running
+pnpm test:integration                                                    # RPC authz + catalog API
+pnpm turbo run test:e2e --filter=@samkrushi/admin-web                    # Playwright (production build)
+```
+
+The E2E/integration setups create and reuse `*@e2e.samkrushi.invalid` and `*@it.samkrushi.invalid` accounts on the LOCAL stack only.
+
 ## 3. Mobile (`apps/mobile`) — Android first
 
 The app uses **development builds** (expo-dev-client), not Expo Go.

@@ -30,6 +30,9 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "test:integration": {
+      "cache": false
     }
   },
   "globalPassThroughEnv": ["APP_VARIANT", "EXPO_NO_TELEMETRY"]

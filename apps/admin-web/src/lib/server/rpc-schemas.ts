@@ -1,12 +1,13 @@
 import 'server-only';
-import { decimalQuantitySchema, paginationMetaSchema } from '@samkrushi/shared';
+import { decimalQuantitySchema, paginationMetaSchema, toDecimalString } from '@samkrushi/shared';
 import { z } from 'zod';
 
 /**
  * Runtime validation of jsonb RPC results (generated DB types describe them
  * only as Json). Quantities arrive as decimal strings (ADR-0003).
  */
-const qty = decimalQuantitySchema;
+/** Canonical display form ("4.0" → "4", "0.500" → "0.5"); values stay exact strings. */
+const qty = decimalQuantitySchema.transform(toDecimalString);
 const nullableQty = qty.nullable();
 
 export const overviewSchema = z.object({

@@ -125,3 +125,107 @@ export function toDecimalString(value: number | string): string {
   const trimmed = text.replace(/0+$/, '').replace(/\.$/, '');
   return trimmed === '-0' ? '0' : trimmed;
 }
+
+/** Static catalog row as selected by the Edge Function (service role). */
+export interface CatalogSourceProduct {
+  id: string;
+  product_code: string;
+  slug: string;
+  name: string;
+  local_name: string | null;
+  description: string | null;
+  base_unit: string;
+  is_active: boolean;
+  is_listable: boolean;
+  display_order: number;
+  category: { code: string; name: string; is_active: boolean } | null;
+  images: { storage_key: string; alt_text: string; is_primary: boolean; display_order: number }[];
+  skus: {
+    id: string;
+    sku_code: string;
+    label: string;
+    sale_unit: string;
+    min_order_packs: number;
+    order_step_packs: number;
+    is_active: boolean;
+    display_order: number;
+  }[];
+}
+
+const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
+  (AVAILABILITY_STATUSES as readonly string[]).includes(value);
+
+/**
+ * Assembles the customer catalog from the static catalog and the shared
+ * availability function's per-SKU rows. Pure and runtime-neutral (used by the
+ * Deno Edge Functions, unit-tested with Vitest). Customers only see listable,
+ * active products in active categories, with status + maxOrderable.
+ */
+export function buildCatalogProducts(
+  products: readonly CatalogSourceProduct[],
+  availability: readonly SkuAvailabilityRow[],
+  options: {
+    includeUnavailable?: boolean;
+    categoryCode?: string;
+    imageUrl: (key: string) => string;
+  },
+): CatalogProduct[] {
+  const bySku = new Map(availability.map((row) => [row.sku_id, row]));
+  const result: CatalogProduct[] = [];
+
+  for (const product of [...products].sort(
+    (a, b) => a.display_order - b.display_order || a.name.localeCompare(b.name),
+  )) {
+    if (!product.is_active || !product.is_listable || !product.category?.is_active) continue;
+    if (options.categoryCode && product.category.code !== options.categoryCode) continue;
+
+    const skus: CatalogSku[] = [];
+    for (const sku of [...product.skus].sort((a, b) => a.display_order - b.display_order)) {
+      const row = bySku.get(sku.id);
+      if (!sku.is_active || !row || !row.is_listable) continue;
+      const status = isAvailabilityStatus(row.availability_status)
+        ? row.availability_status
+        : 'unavailable';
+      skus.push({
+        skuId: sku.id,
+        skuCode: sku.sku_code,
+        label: sku.label,
+        packQuantity: toDecimalString(row.pack_quantity),
+        baseUnit: product.base_unit,
+        saleUnit: sku.sale_unit,
+        pricePaise: row.price_paise,
+        minOrderPacks: sku.min_order_packs,
+        orderStepPacks: sku.order_step_packs,
+        maxOrderable: status === 'unavailable' ? 0 : row.max_orderable,
+        availabilityStatus: status,
+      });
+    }
+    if (skus.length === 0) continue;
+    const availabilityStatus = productAvailabilityStatus(skus);
+    if (!options.includeUnavailable && availabilityStatus === 'unavailable') continue;
+
+    result.push({
+      productId: product.id,
+      productCode: product.product_code,
+      slug: product.slug,
+      name: product.name,
+      localName: product.local_name,
+      description: product.description,
+      category: { code: product.category.code, name: product.category.name },
+      baseUnit: product.base_unit,
+      availabilityStatus,
+      images: [...product.images]
+        .sort(
+          (a, b) =>
+            Number(b.is_primary) - Number(a.is_primary) || a.display_order - b.display_order,
+        )
+        .map((image) => ({
+          url: options.imageUrl(image.storage_key),
+          altText: image.alt_text,
+          isPrimary: image.is_primary,
+        })),
+      skus,
+    });
+  }
+  return result;
+}

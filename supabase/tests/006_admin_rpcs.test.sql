@@ -5,6 +5,20 @@ begin;
 \ir _helpers.psql
 select * from no_plan();
 
+-- Isolate from data left by E2E/integration runs (rolled back at the end).
+set local session_replication_role = replica;
+delete from public.supply_confirmations;
+delete from public.supplier_contacts;
+delete from public.farmer_profiles;
+delete from public.suppliers;
+set local session_replication_role = origin;
+
+-- Isolate from data left by E2E/integration runs: clear audit rows inside this
+-- rolled-back transaction (replica role bypasses the append-only trigger).
+set local session_replication_role = replica;
+delete from public.audit_logs;
+set local session_replication_role = origin;
+
 create temporary table actors (label text primary key, user_id uuid);
 grant select on actors to anon, authenticated, service_role;
 insert into actors values
@@ -300,6 +314,12 @@ select is((select allowed from public.consume_rate_limit('test_bucket', 'key-1',
 select results_eq($$select allowed, retry_after_seconds > 0 from public.consume_rate_limit('test_bucket', 'key-1', 2, 3600)$$,
   $$values (false, true)$$, 'third hit is limited with a retry-after');
 select is((select allowed from public.consume_rate_limit('test_bucket', 'key-2', 2, 3600)), true, 'other keys are independent');
+select results_eq($$select allowed, remaining from public.rate_limit_status('test_bucket', 'key-1', 2, 3600)$$,
+  $$values (false, 0)$$, 'status reports a limited key without consuming');
+select results_eq($$select allowed, remaining from public.rate_limit_status('test_bucket', 'key-3', 2, 3600)$$,
+  $$values (true, 2)$$, 'status of an unused key is allowed with full remaining');
+select is((select allowed from public.consume_rate_limit('test_bucket', 'key-3', 2, 3600)), true,
+  'status checks do not count as hits');
 select tests.clear_authentication();
 select is((select count(*)::int from public.rate_limit_counters where key_hash like '%key-1%'), 0, 'raw keys are never stored');
 

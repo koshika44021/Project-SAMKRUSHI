@@ -28,13 +28,14 @@ async function clientIp(): Promise<string> {
 }
 
 /**
- * Rate limit beyond Supabase defaults (WEB_ADMIN §3, master §13.7). The limit
- * comes from settings (`rate_limit.staff_login`); when it is not configured,
- * Supabase Auth's built-in limits still apply.
+ * Rate limit FAILED sign-ins beyond Supabase defaults (WEB_ADMIN §3, master
+ * §13.7). The limit comes from settings (`rate_limit.staff_login`); when it is
+ * not configured, Supabase Auth's built-in limits still apply.
  */
-async function checkLoginRateLimit(
-  email: string,
-): Promise<{ allowed: boolean; retryAfter: number }> {
+async function loginRateLimit(email: string): Promise<{
+  check: () => Promise<{ allowed: boolean; retryAfter: number }>;
+  recordFailure: () => Promise<void>;
+}> {
   const admin = createSupabaseAdminClient();
   const { data: setting } = await admin
     .from('app_settings')
@@ -42,18 +43,26 @@ async function checkLoginRateLimit(
     .eq('key', 'rate_limit.staff_login')
     .maybeSingle();
   const parsed = rateLimitSettingSchema.safeParse(setting?.value);
-  if (!parsed.success) return { allowed: true, retryAfter: 0 };
+  const args = parsed.success
+    ? {
+        p_bucket: 'staff_login',
+        p_key: `${email}|${await clientIp()}`,
+        p_limit: parsed.data.limit,
+        p_window_seconds: parsed.data.windowSeconds,
+      }
+    : null;
 
-  const { data, error } = await admin
-    .rpc('consume_rate_limit', {
-      p_bucket: 'staff_login',
-      p_key: `${email}|${await clientIp()}`,
-      p_limit: parsed.data.limit,
-      p_window_seconds: parsed.data.windowSeconds,
-    })
-    .single();
-  if (error || !data) return { allowed: true, retryAfter: 0 };
-  return { allowed: data.allowed, retryAfter: data.retry_after_seconds };
+  return {
+    async check() {
+      if (!args) return { allowed: true, retryAfter: 0 };
+      const { data, error } = await admin.rpc('rate_limit_status', args).single();
+      if (error || !data) return { allowed: true, retryAfter: 0 };
+      return { allowed: data.allowed, retryAfter: data.retry_after_seconds };
+    },
+    async recordFailure() {
+      if (args) await admin.rpc('consume_rate_limit', args);
+    },
+  };
 }
 
 export async function signIn(input: unknown, next?: string): Promise<ActionResult<never>> {
@@ -61,7 +70,8 @@ export async function signIn(input: unknown, next?: string): Promise<ActionResul
   if (!parsed.success) return validationFailure(parsed.error);
   const { email, password } = parsed.data;
 
-  const limit = await checkLoginRateLimit(email);
+  const limiter = await loginRateLimit(email);
+  const limit = await limiter.check();
   if (!limit.allowed) {
     return failure('RATE_LIMITED', 'Too many sign-in attempts. Please wait and try again.', {
       details: { retryAfter: limit.retryAfter },
@@ -71,6 +81,7 @@ export async function signIn(input: unknown, next?: string): Promise<ActionResul
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
+    await limiter.recordFailure();
     return failure('UNAUTHENTICATED', GENERIC_LOGIN_ERROR);
   }
 
@@ -79,6 +90,7 @@ export async function signIn(input: unknown, next?: string): Promise<ActionResul
   const { data: access } = await supabase.rpc('my_access').single();
   if (!access?.is_active_staff) {
     await supabase.auth.signOut({ scope: 'local' });
+    await limiter.recordFailure();
     return failure('UNAUTHENTICATED', GENERIC_LOGIN_ERROR);
   }
 
