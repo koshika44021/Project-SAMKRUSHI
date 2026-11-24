@@ -436,6 +436,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      rate_limit_counters: {
+        Row: {
+          bucket: string;
+          hits: number;
+          key_hash: string;
+          window_start: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          bucket: string;
+          hits: number;
+          key_hash: string;
+          window_start: string;
+        };
+        Update: {
+          bucket?: string;
+          hits?: number;
+          key_hash?: string;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
       sku_price_history: {
         Row: {
           changed_by: string | null;
@@ -827,11 +849,172 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_check_duplicate_phones: {
+        Args: { p_exclude_supplier?: string; p_phones: string[] };
+        Returns: Json;
+      };
+      admin_create_farmer: {
+        Args: {
+          p_address_line: string;
+          p_district: string;
+          p_duplicate_phone_reason?: string;
+          p_land_area_unit?: Database['public']['Enums']['land_area_unit'];
+          p_land_area_value?: number;
+          p_mandal: string;
+          p_name: string;
+          p_notes?: string;
+          p_pin_code: string;
+          p_primary_phone: string;
+          p_request_id?: string;
+          p_secondary_phone?: string;
+          p_state: string;
+          p_status?: Database['public']['Enums']['supplier_status'];
+          p_village_locality: string;
+        };
+        Returns: Json;
+      };
+      admin_create_supply: {
+        Args: {
+          p_business_date: string;
+          p_confirmation_source: string;
+          p_confirmed_at?: string;
+          p_confirmed_by?: string;
+          p_entry_unit?: string;
+          p_evidence_storage_key?: string;
+          p_note?: string;
+          p_product_id: string;
+          p_quantity: number;
+          p_request_id?: string;
+          p_supplier_id: string;
+        };
+        Returns: Json;
+      };
+      admin_farmer_photo_key: { Args: { p_supplier_id: string }; Returns: string };
+      admin_get_farmer: { Args: { p_supplier_id: string }; Returns: Json };
+      admin_list_farmers: {
+        Args: {
+          p_district?: string;
+          p_locality?: string;
+          p_page?: number;
+          p_page_size?: number;
+          p_product_id?: string;
+          p_search?: string;
+          p_sort?: string;
+          p_status?: Database['public']['Enums']['supplier_status'];
+        };
+        Returns: Json;
+      };
+      admin_list_staff: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_list_supply: {
+        Args: {
+          p_business_date?: string;
+          p_category_id?: string;
+          p_page?: number;
+          p_page_size?: number;
+          p_product_id?: string;
+          p_status?: Database['public']['Enums']['supply_status'];
+          p_supplier_id?: string;
+        };
+        Returns: Json;
+      };
+      admin_product_availability: { Args: { p_business_date: string }; Returns: Json };
+      admin_register_staff: {
+        Args: {
+          p_full_name: string;
+          p_request_id?: string;
+          p_roles: Database['public']['Enums']['app_role'][];
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      admin_set_farmer_photo: {
+        Args: { p_request_id?: string; p_storage_key: string; p_supplier_id: string };
+        Returns: Json;
+      };
+      admin_set_farmer_status: {
+        Args: {
+          p_expected_version: number;
+          p_reason: string;
+          p_request_id?: string;
+          p_status: Database['public']['Enums']['supplier_status'];
+          p_supplier_id: string;
+        };
+        Returns: Json;
+      };
+      admin_set_staff_roles: {
+        Args: {
+          p_reason: string;
+          p_request_id?: string;
+          p_roles: Database['public']['Enums']['app_role'][];
+          p_user_id: string;
+        };
+        Returns: Json;
+      };
+      admin_set_staff_status: {
+        Args: { p_is_active: boolean; p_reason: string; p_request_id?: string; p_user_id: string };
+        Returns: Json;
+      };
+      admin_set_supply_status: {
+        Args: {
+          p_expected_version: number;
+          p_reason: string;
+          p_request_id?: string;
+          p_status: Database['public']['Enums']['supply_status'];
+          p_supply_id: string;
+        };
+        Returns: Json;
+      };
+      admin_update_farmer: {
+        Args: {
+          p_address_line: string;
+          p_district: string;
+          p_duplicate_phone_reason?: string;
+          p_expected_version: number;
+          p_land_area_unit?: Database['public']['Enums']['land_area_unit'];
+          p_land_area_value?: number;
+          p_mandal: string;
+          p_name: string;
+          p_notes?: string;
+          p_pin_code: string;
+          p_primary_phone: string;
+          p_reason?: string;
+          p_request_id?: string;
+          p_secondary_phone?: string;
+          p_state: string;
+          p_supplier_id: string;
+          p_village_locality: string;
+        };
+        Returns: Json;
+      };
+      admin_update_staff_name: {
+        Args: { p_full_name: string; p_request_id?: string; p_user_id: string };
+        Returns: Json;
+      };
+      admin_update_supply: {
+        Args: {
+          p_expected_version: number;
+          p_note?: string;
+          p_quantity: number;
+          p_reason: string;
+          p_request_id?: string;
+          p_supply_id: string;
+        };
+        Returns: Json;
+      };
+      consume_rate_limit: {
+        Args: { p_bucket: string; p_key: string; p_limit: number; p_window_seconds: number };
+        Returns: {
+          allowed: boolean;
+          remaining: number;
+          retry_after_seconds: number;
+        }[];
+      };
       convert_quantity: {
         Args: { p_from_unit: string; p_quantity: number; p_to_unit: string };
         Returns: number;
       };
       current_business_date: { Args: Record<PropertyKey, never>; Returns: string };
+      dashboard_overview: { Args: { p_business_date: string }; Returns: Json };
       my_access: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -852,6 +1035,7 @@ export type Database = {
           product_id: string;
         }[];
       };
+      record_staff_login: { Args: Record<PropertyKey, never>; Returns: undefined };
       sku_availability: {
         Args: { p_business_date: string; p_product_ids?: string[]; p_zone_id?: string };
         Returns: {

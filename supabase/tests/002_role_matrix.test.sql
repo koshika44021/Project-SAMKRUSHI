@@ -71,6 +71,7 @@ from (values
   ('units',                       '{super_admin,operations_admin,finance_admin,support_agent,viewer}'),
   ('audit_logs',                  '{super_admin}'),
   ('app_settings',                '{super_admin}'),
+  ('rate_limit_counters',         '{}'),
   ('policy_versions',             '{super_admin,operations_admin,finance_admin,dispatch_admin,support_agent,viewer}'),
   -- own row only for these; listed readers can see rows
   ('profiles',                    '{customer}'),
