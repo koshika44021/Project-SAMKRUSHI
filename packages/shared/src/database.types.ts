@@ -162,6 +162,339 @@ export type Database = {
           },
         ];
       };
+      goods_receipt_lines: {
+        Row: {
+          accepted_quantity: number;
+          created_at: string;
+          damaged_quantity: number;
+          evidence_storage_key: string | null;
+          goods_receipt_id: string;
+          harvest_date: string | null;
+          id: string;
+          lot_code: string | null;
+          product_id: string;
+          purchase_order_line_id: string;
+          quality_grade: string | null;
+          quality_notes: string | null;
+          received_quantity: number;
+          rejected_quantity: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          accepted_quantity: number;
+          created_at?: string;
+          damaged_quantity?: number;
+          evidence_storage_key?: string | null;
+          goods_receipt_id: string;
+          harvest_date?: string | null;
+          id?: string;
+          lot_code?: string | null;
+          product_id: string;
+          purchase_order_line_id: string;
+          quality_grade?: string | null;
+          quality_notes?: string | null;
+          received_quantity: number;
+          rejected_quantity?: number;
+        };
+        Update: {
+          accepted_quantity?: number;
+          created_at?: string;
+          damaged_quantity?: number;
+          evidence_storage_key?: string | null;
+          goods_receipt_id?: string;
+          harvest_date?: string | null;
+          id?: string;
+          lot_code?: string | null;
+          product_id?: string;
+          purchase_order_line_id?: string;
+          quality_grade?: string | null;
+          quality_notes?: string | null;
+          received_quantity?: number;
+          rejected_quantity?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'goods_receipt_lines_goods_receipt_id_fkey';
+            columns: ['goods_receipt_id'];
+            isOneToOne: false;
+            referencedRelation: 'goods_receipts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'goods_receipt_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'goods_receipt_lines_purchase_order_line_id_fkey';
+            columns: ['purchase_order_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_order_lines';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      goods_receipts: {
+        Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          notes: string | null;
+          over_receipt_reason: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          purchase_order_id: string;
+          receipt_number: string;
+          received_at: string;
+          received_by: string;
+          status: Database['public']['Enums']['goods_receipt_status'];
+          supplier_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          notes?: string | null;
+          over_receipt_reason?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          purchase_order_id: string;
+          receipt_number: string;
+          received_at?: string;
+          received_by: string;
+          status?: Database['public']['Enums']['goods_receipt_status'];
+          supplier_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          notes?: string | null;
+          over_receipt_reason?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          purchase_order_id?: string;
+          receipt_number?: string;
+          received_at?: string;
+          received_by?: string;
+          status?: Database['public']['Enums']['goods_receipt_status'];
+          supplier_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'goods_receipts_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'goods_receipts_supplier_id_fkey';
+            columns: ['supplier_id'];
+            isOneToOne: false;
+            referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      inventory_movements: {
+        Row: {
+          batch_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          movement_type: Database['public']['Enums']['inventory_movement_type'];
+          product_id: string;
+          quantity_delta: number;
+          reason: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          request_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          movement_type: Database['public']['Enums']['inventory_movement_type'];
+          product_id: string;
+          quantity_delta: number;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          request_id?: string | null;
+        };
+        Update: {
+          batch_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          movement_type?: Database['public']['Enums']['inventory_movement_type'];
+          product_id?: string;
+          quantity_delta?: number;
+          reason?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          request_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_movements_batch_id_fkey';
+            columns: ['batch_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_batches';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'inventory_movements_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      inventory_reservations: {
+        Row: {
+          batch_id: string | null;
+          business_date: string;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          product_id: string;
+          quantity: number;
+          reference_id: string | null;
+          reference_type: string | null;
+          status: Database['public']['Enums']['reservation_status'];
+          status_changed_at: string | null;
+          updated_at: string;
+          zone_id: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_id?: string | null;
+          business_date: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          product_id: string;
+          quantity: number;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          status?: Database['public']['Enums']['reservation_status'];
+          status_changed_at?: string | null;
+          updated_at?: string;
+          zone_id?: string | null;
+        };
+        Update: {
+          batch_id?: string | null;
+          business_date?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          product_id?: string;
+          quantity?: number;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          status?: Database['public']['Enums']['reservation_status'];
+          status_changed_at?: string | null;
+          updated_at?: string;
+          zone_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'inventory_reservations_batch_id_fkey';
+            columns: ['batch_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_batches';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'inventory_reservations_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      operations_exceptions: {
+        Row: {
+          batch_id: string | null;
+          business_date: string | null;
+          created_at: string;
+          details: NonNullable<Json>;
+          exception_type: Database['public']['Enums']['operations_exception_type'];
+          id: string;
+          product_id: string | null;
+          resolution_note: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: Database['public']['Enums']['operations_exception_status'];
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_id?: string | null;
+          business_date?: string | null;
+          created_at?: string;
+          details?: NonNullable<Json>;
+          exception_type: Database['public']['Enums']['operations_exception_type'];
+          id?: string;
+          product_id?: string | null;
+          resolution_note?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: Database['public']['Enums']['operations_exception_status'];
+        };
+        Update: {
+          batch_id?: string | null;
+          business_date?: string | null;
+          created_at?: string;
+          details?: NonNullable<Json>;
+          exception_type?: Database['public']['Enums']['operations_exception_type'];
+          id?: string;
+          product_id?: string | null;
+          resolution_note?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: Database['public']['Enums']['operations_exception_status'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'operations_exceptions_batch_id_fkey';
+            columns: ['batch_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_batches';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'operations_exceptions_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       policy_versions: {
         Row: {
           body_markdown: string;
@@ -208,6 +541,86 @@ export type Database = {
         };
         Relationships: [];
       };
+      product_batches: {
+        Row: {
+          batch_code: string;
+          created_at: string;
+          created_by: string | null;
+          goods_receipt_line_id: string;
+          harvest_date: string | null;
+          id: string;
+          initial_quantity: number;
+          product_id: string;
+          received_at: string;
+          status: Database['public']['Enums']['batch_status'];
+          status_reason: string | null;
+          supplier_id: string;
+          unit_cost_paise: number | null;
+          updated_at: string;
+          updated_by: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_code: string;
+          created_at?: string;
+          created_by?: string | null;
+          goods_receipt_line_id: string;
+          harvest_date?: string | null;
+          id?: string;
+          initial_quantity: number;
+          product_id: string;
+          received_at: string;
+          status?: Database['public']['Enums']['batch_status'];
+          status_reason?: string | null;
+          supplier_id: string;
+          unit_cost_paise?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Update: {
+          batch_code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          goods_receipt_line_id?: string;
+          harvest_date?: string | null;
+          id?: string;
+          initial_quantity?: number;
+          product_id?: string;
+          received_at?: string;
+          status?: Database['public']['Enums']['batch_status'];
+          status_reason?: string | null;
+          supplier_id?: string;
+          unit_cost_paise?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'product_batches_goods_receipt_line_id_fkey';
+            columns: ['goods_receipt_line_id'];
+            isOneToOne: true;
+            referencedRelation: 'goods_receipt_lines';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'product_batches_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'product_batches_supplier_id_fkey';
+            columns: ['supplier_id'];
+            isOneToOne: false;
+            referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       product_images: {
         Row: {
           alt_text: string;
@@ -249,6 +662,62 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      product_recall_batches: {
+        Row: {
+          batch_id: string;
+          recall_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          batch_id: string;
+          recall_id: string;
+        };
+        Update: {
+          batch_id?: string;
+          recall_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'product_recall_batches_batch_id_fkey';
+            columns: ['batch_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_batches';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'product_recall_batches_recall_id_fkey';
+            columns: ['recall_id'];
+            isOneToOne: false;
+            referencedRelation: 'product_recalls';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      product_recalls: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          reason: string;
+          recall_number: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          reason: string;
+          recall_number: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          reason?: string;
+          recall_number?: string;
+        };
+        Relationships: [];
       };
       product_skus: {
         Row: {
@@ -435,6 +904,141 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [];
+      };
+      purchase_order_lines: {
+        Row: {
+          agreed_unit_cost_paise: number | null;
+          created_at: string;
+          id: string;
+          line_number: number;
+          notes: string | null;
+          ordered_quantity: number;
+          product_id: string;
+          purchase_order_id: string;
+          supply_confirmation_id: string | null;
+          unit: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          agreed_unit_cost_paise?: number | null;
+          created_at?: string;
+          id?: string;
+          line_number: number;
+          notes?: string | null;
+          ordered_quantity: number;
+          product_id: string;
+          purchase_order_id: string;
+          supply_confirmation_id?: string | null;
+          unit: string;
+        };
+        Update: {
+          agreed_unit_cost_paise?: number | null;
+          created_at?: string;
+          id?: string;
+          line_number?: number;
+          notes?: string | null;
+          ordered_quantity?: number;
+          product_id?: string;
+          purchase_order_id?: string;
+          supply_confirmation_id?: string | null;
+          unit?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'purchase_order_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_order_lines_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'purchase_orders';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_order_lines_supply_confirmation_id_fkey';
+            columns: ['supply_confirmation_id'];
+            isOneToOne: false;
+            referencedRelation: 'supply_confirmations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_order_lines_unit_fkey';
+            columns: ['unit'];
+            isOneToOne: false;
+            referencedRelation: 'units';
+            referencedColumns: ['code'];
+          },
+        ];
+      };
+      purchase_orders: {
+        Row: {
+          cancel_reason: string | null;
+          cancelled_at: string | null;
+          close_reason: string | null;
+          closed_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          expected_date: string;
+          id: string;
+          notes: string | null;
+          po_number: string;
+          sent_at: string | null;
+          status: Database['public']['Enums']['purchase_order_status'];
+          supplier_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          version: number;
+        };
+        ComputedFields: never;
+        Insert: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          close_reason?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          expected_date: string;
+          id?: string;
+          notes?: string | null;
+          po_number: string;
+          sent_at?: string | null;
+          status?: Database['public']['Enums']['purchase_order_status'];
+          supplier_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Update: {
+          cancel_reason?: string | null;
+          cancelled_at?: string | null;
+          close_reason?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          expected_date?: string;
+          id?: string;
+          notes?: string | null;
+          po_number?: string;
+          sent_at?: string | null;
+          status?: Database['public']['Enums']['purchase_order_status'];
+          supplier_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'purchase_orders_supplier_id_fkey';
+            columns: ['supplier_id'];
+            isOneToOne: false;
+            referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       rate_limit_counters: {
         Row: {
@@ -883,6 +1487,25 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_adjust_stock: {
+        Args: {
+          p_batch_id: string;
+          p_movement_type: Database['public']['Enums']['inventory_movement_type'];
+          p_quantity: string;
+          p_reason: string;
+          p_request_id?: string;
+        };
+        Returns: Json;
+      };
+      admin_cancel_goods_receipt: {
+        Args: {
+          p_expected_version: number;
+          p_reason: string;
+          p_receipt_id: string;
+          p_request_id?: string;
+        };
+        Returns: Json;
+      };
       admin_check_duplicate_phones: {
         Args: { p_exclude_supplier?: string; p_phones: string[] };
         Returns: Json;
@@ -907,6 +1530,40 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_create_goods_receipt: {
+        Args: {
+          p_lines: Json;
+          p_notes?: string;
+          p_over_receipt_reason?: string;
+          p_po_id: string;
+          p_received_at?: string;
+          p_request_id?: string;
+        };
+        Returns: Json;
+      };
+      admin_create_po_from_supply: {
+        Args: {
+          p_business_date: string;
+          p_expected_date?: string;
+          p_request_id?: string;
+          p_supplier_id: string;
+        };
+        Returns: Json;
+      };
+      admin_create_purchase_order: {
+        Args: {
+          p_expected_date: string;
+          p_lines: Json;
+          p_notes?: string;
+          p_request_id?: string;
+          p_supplier_id: string;
+        };
+        Returns: Json;
+      };
+      admin_create_recall: {
+        Args: { p_batch_ids: string[]; p_reason: string; p_request_id?: string };
+        Returns: Json;
+      };
       admin_create_supply: {
         Args: {
           p_business_date: string;
@@ -924,7 +1581,28 @@ export type Database = {
         Returns: Json;
       };
       admin_farmer_photo_key: { Args: { p_supplier_id: string }; Returns: string };
+      admin_get_batch: { Args: { p_batch_id: string }; Returns: Json };
       admin_get_farmer: { Args: { p_supplier_id: string }; Returns: Json };
+      admin_get_goods_receipt: { Args: { p_receipt_id: string }; Returns: Json };
+      admin_get_purchase_order: { Args: { p_po_id: string }; Returns: Json };
+      admin_inventory_summary: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_list_batches: {
+        Args: {
+          p_page?: number;
+          p_page_size?: number;
+          p_product_id?: string;
+          p_status?: Database['public']['Enums']['batch_status'];
+        };
+        Returns: Json;
+      };
+      admin_list_exceptions: {
+        Args: {
+          p_page?: number;
+          p_page_size?: number;
+          p_status?: Database['public']['Enums']['operations_exception_status'];
+        };
+        Returns: Json;
+      };
       admin_list_farmers: {
         Args: {
           p_district?: string;
@@ -935,6 +1613,23 @@ export type Database = {
           p_search?: string;
           p_sort?: string;
           p_status?: Database['public']['Enums']['supplier_status'];
+        };
+        Returns: Json;
+      };
+      admin_list_goods_receipts: {
+        Args: {
+          p_page?: number;
+          p_page_size?: number;
+          p_status?: Database['public']['Enums']['goods_receipt_status'];
+        };
+        Returns: Json;
+      };
+      admin_list_purchase_orders: {
+        Args: {
+          p_page?: number;
+          p_page_size?: number;
+          p_status?: Database['public']['Enums']['purchase_order_status'];
+          p_supplier_id?: string;
         };
         Returns: Json;
       };
@@ -951,6 +1646,10 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_post_goods_receipt: {
+        Args: { p_expected_version: number; p_receipt_id: string; p_request_id?: string };
+        Returns: Json;
+      };
       admin_product_availability: { Args: { p_business_date: string }; Returns: Json };
       admin_record_staff_auth_event: {
         Args: { p_event: string; p_reason: string; p_request_id?: string; p_user_id: string };
@@ -965,6 +1664,20 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_resolve_exception: {
+        Args: { p_exception_id: string; p_note: string; p_request_id?: string };
+        Returns: Json;
+      };
+      admin_set_batch_status: {
+        Args: {
+          p_batch_id: string;
+          p_expected_version: number;
+          p_reason: string;
+          p_request_id?: string;
+          p_status: Database['public']['Enums']['batch_status'];
+        };
+        Returns: Json;
+      };
       admin_set_farmer_photo: {
         Args: { p_request_id?: string; p_storage_key: string; p_supplier_id: string };
         Returns: Json;
@@ -976,6 +1689,16 @@ export type Database = {
           p_request_id?: string;
           p_status: Database['public']['Enums']['supplier_status'];
           p_supplier_id: string;
+        };
+        Returns: Json;
+      };
+      admin_set_purchase_order_status: {
+        Args: {
+          p_action: string;
+          p_expected_version: number;
+          p_po_id: string;
+          p_reason?: string;
+          p_request_id?: string;
         };
         Returns: Json;
       };
@@ -1002,6 +1725,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_supply_awaiting_po: { Args: { p_business_date: string }; Returns: Json };
       admin_supply_evidence_key: { Args: { p_supply_id: string }; Returns: string };
       admin_update_farmer: {
         Args: {
@@ -1022,6 +1746,17 @@ export type Database = {
           p_state: string;
           p_supplier_id: string;
           p_village_locality: string;
+        };
+        Returns: Json;
+      };
+      admin_update_purchase_order: {
+        Args: {
+          p_expected_date: string;
+          p_expected_version: number;
+          p_lines: Json;
+          p_notes?: string;
+          p_po_id: string;
+          p_request_id?: string;
         };
         Returns: Json;
       };
@@ -1058,6 +1793,7 @@ export type Database = {
       };
       current_business_date: { Args: Record<PropertyKey, never>; Returns: string };
       dashboard_overview: { Args: { p_business_date: string }; Returns: Json };
+      dashboard_procurement_widgets: { Args: Record<PropertyKey, never>; Returns: Json };
       my_access: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -1137,10 +1873,26 @@ export type Database = {
         | 'support_agent'
         | 'rider'
         | 'viewer';
+      batch_status: 'active' | 'on_hold' | 'recalled' | 'depleted';
+      goods_receipt_status: 'draft' | 'posted' | 'cancelled';
+      inventory_movement_type:
+        | 'receipt'
+        | 'adjustment_increase'
+        | 'return_to_stock'
+        | 'wastage'
+        | 'damage'
+        | 'sample'
+        | 'adjustment_decrease'
+        | 'sale';
       job_run_status: 'running' | 'succeeded' | 'failed';
       land_area_unit: 'acre' | 'hectare';
+      operations_exception_status: 'open' | 'resolved';
+      operations_exception_type:
+        'supply_shortfall' | 'reservations_returned_to_pool' | 'over_receipt';
       policy_status: 'draft' | 'published' | 'retired';
       policy_type: 'substitution' | 'cancellation' | 'refund' | 'delivery' | 'privacy' | 'terms';
+      purchase_order_status: 'draft' | 'sent' | 'partially_received' | 'received' | 'cancelled';
+      reservation_status: 'active' | 'consumed' | 'released' | 'expired';
       supplier_contact_type: 'primary' | 'secondary' | 'authorized';
       supplier_status: 'pending_verification' | 'active' | 'suspended' | 'inactive';
       supplier_type: 'farmer' | 'fpo' | 'aggregator' | 'approved_source' | 'other';
@@ -1267,10 +2019,30 @@ export const Constants = {
         'rider',
         'viewer',
       ],
+      batch_status: ['active', 'on_hold', 'recalled', 'depleted'],
+      goods_receipt_status: ['draft', 'posted', 'cancelled'],
+      inventory_movement_type: [
+        'receipt',
+        'adjustment_increase',
+        'return_to_stock',
+        'wastage',
+        'damage',
+        'sample',
+        'adjustment_decrease',
+        'sale',
+      ],
       job_run_status: ['running', 'succeeded', 'failed'],
       land_area_unit: ['acre', 'hectare'],
+      operations_exception_status: ['open', 'resolved'],
+      operations_exception_type: [
+        'supply_shortfall',
+        'reservations_returned_to_pool',
+        'over_receipt',
+      ],
       policy_status: ['draft', 'published', 'retired'],
       policy_type: ['substitution', 'cancellation', 'refund', 'delivery', 'privacy', 'terms'],
+      purchase_order_status: ['draft', 'sent', 'partially_received', 'received', 'cancelled'],
+      reservation_status: ['active', 'consumed', 'released', 'expired'],
       supplier_contact_type: ['primary', 'secondary', 'authorized'],
       supplier_status: ['pending_verification', 'active', 'suspended', 'inactive'],
       supplier_type: ['farmer', 'fpo', 'aggregator', 'approved_source', 'other'],

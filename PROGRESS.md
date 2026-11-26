@@ -63,10 +63,10 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 
 ## Phase 4 checklist: procurement & inventory (design: ADR-0012)
 
-- [ ] 4.1 Migration: POs + lines (supply link), receipts + lines (received = accepted + rejected + damaged), batches, append-only movements, reservations schema, recalls + junction, operations exceptions, number generators.
-- [ ] 4.2 Migration: RPCs (PO create/from-supply/update/send/cancel/close; receipt create/post/cancel; stock adjust; batch hold/release; recall; resolve exception) + reads; availability core replaced (on-hand + open supply − reservations).
-- [ ] 4.3 pgTAP: lifecycle, no stock from PO, partial receipts reconcile, accepted-only batches, no double count (ADR-0007 worked example), reservation re-pointing, hold returns to pool, no negative ATP, concurrency (locks), role matrix rows.
-- [ ] 4.4 Shared Zod contracts (procurement, receiving, inventory).
+- [x] 4.1 Migration: POs + lines (supply link), receipts + lines (received = accepted + rejected + damaged), batches, append-only movements, reservations schema, recalls + junction, operations exceptions, number generators.
+- [x] 4.2 Migration: RPCs (PO create/from-supply/update/send/cancel/close; receipt create/post/cancel; stock adjust; batch hold/release; recall; resolve exception) + reads; availability core replaced (on-hand + open supply − reservations).
+- [x] 4.3 pgTAP (`009_procurement_inventory.test.sql`, 110 tests; role matrix rows in 002): lifecycle, no stock from PO, partial receipts reconcile, accepted-only batches, no double count (ADR-0007 worked example), reservation re-pointing, hold returns to pool, no negative ATP, concurrency (locks), role matrix rows.
+- [x] 4.4 Shared Zod contracts: `packages/shared/src/inventory.ts` (+ tests); capabilities `viewInventory` / `manageInventory`.
 - [ ] 4.5 admin-web: Procurement, Goods Receiving & Quality, Inventory & Batches, Exceptions pages and nav; overview widgets (POs awaiting receipt, draft receipts, held/recalled batches, open exceptions).
 - [ ] 4.6 Integration + E2E (PO → receipt → batch → availability; rejection; hold; recall).
 - [ ] 4.7 Docs (API contracts, runbooks), tracker, commit.
@@ -81,7 +81,7 @@ Nothing half-done. Known follow-ups, deliberately deferred and tracked:
 
 ## Next actions
 
-1. Phase 4: the schema/RPC/read migrations are drafted (4.1–4.2). Next is the 4.3 pgTAP suite.
+1. Phase 4: 4.1–4.4 are done (pgTAP 997 PASS). Next is 4.5, the admin-web pages.
 
 ## Environment notes (Windows dev machine)
 

@@ -60,6 +60,11 @@ export const capabilities = {
   manageSupply: (roles: readonly AppRole[]) => hasAny(roles, ['super_admin', 'operations_admin']),
   viewCatalog: (roles: readonly AppRole[]) =>
     hasAny(roles, ['super_admin', 'operations_admin', 'finance_admin', 'support_agent', 'viewer']),
+  /** Procurement, receiving, batches, exceptions (ADR-0012): finance reads costs. */
+  viewInventory: (roles: readonly AppRole[]) =>
+    hasAny(roles, ['super_admin', 'operations_admin', 'finance_admin']),
+  manageInventory: (roles: readonly AppRole[]) =>
+    hasAny(roles, ['super_admin', 'operations_admin']),
   manageStaff: (roles: readonly AppRole[]) => hasAny(roles, ['super_admin']),
   viewAudit: (roles: readonly AppRole[]) => hasAny(roles, ['super_admin']),
 } as const;

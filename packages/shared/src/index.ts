@@ -2,6 +2,7 @@ export * from './access.ts';
 export * from './api.ts';
 export * from './catalog.ts';
 export * from './farmer.ts';
+export * from './inventory.ts';
 export * from './money.ts';
 export * from './phone.ts';
 export * from './quantity.ts';

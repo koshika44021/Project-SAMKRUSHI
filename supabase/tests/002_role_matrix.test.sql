@@ -51,6 +51,37 @@ insert into public.scheduled_job_runs (job_name, status, finished_at) values ('d
 insert into public.policy_versions (policy_type, version_number, title, body_markdown)
   values ('refund', 1, 'DEV refund policy', 'Content pending founder/legal approval');
 
+-- Procurement / inventory fixtures (Phase 4) on a separate product so the
+-- availability assertions below are unaffected. Inserted as the owner, in
+-- the order the line guards allow (lines only while the document is draft).
+insert into public.products (id, product_code, category_id, name, slug, base_unit)
+  values ('00000000-0000-0000-0000-0000000000a2', 'DEV-INV', '00000000-0000-0000-0000-0000000000c1', 'DEV Inventory', 'dev-inv', 'kg');
+insert into public.purchase_orders (id, po_number, supplier_id, expected_date)
+  values ('00000000-0000-0000-0000-0000000000b1', 'RM-PO-1', '00000000-0000-0000-0000-0000000000f1', public.current_business_date());
+insert into public.purchase_order_lines (id, purchase_order_id, line_number, product_id, ordered_quantity, unit)
+  values ('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000b1', 1, '00000000-0000-0000-0000-0000000000a2', 5, 'kg');
+update public.purchase_orders set status = 'sent', sent_at = now() where id = '00000000-0000-0000-0000-0000000000b1';
+insert into public.goods_receipts (id, receipt_number, purchase_order_id, supplier_id, received_by)
+  select '00000000-0000-0000-0000-0000000000b3', 'RM-GRN-1', '00000000-0000-0000-0000-0000000000b1',
+         '00000000-0000-0000-0000-0000000000f1', user_id from actors where label = 'super_admin';
+insert into public.goods_receipt_lines (id, goods_receipt_id, purchase_order_line_id, product_id, received_quantity, accepted_quantity)
+  values ('00000000-0000-0000-0000-0000000000b4', '00000000-0000-0000-0000-0000000000b3', '00000000-0000-0000-0000-0000000000b2',
+          '00000000-0000-0000-0000-0000000000a2', 5, 5);
+update public.goods_receipts set status = 'posted', posted_at = now(),
+       posted_by = (select user_id from actors where label = 'super_admin')
+ where id = '00000000-0000-0000-0000-0000000000b3';
+insert into public.product_batches (id, batch_code, product_id, supplier_id, goods_receipt_line_id, received_at, initial_quantity, status, status_reason)
+  values ('00000000-0000-0000-0000-0000000000b5', 'RM-B-1', '00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000f1',
+          '00000000-0000-0000-0000-0000000000b4', now(), 5, 'recalled', 'DEV recall');
+insert into public.inventory_movements (batch_id, product_id, movement_type, quantity_delta)
+  values ('00000000-0000-0000-0000-0000000000b5', '00000000-0000-0000-0000-0000000000a2', 'receipt', 5);
+insert into public.inventory_reservations (product_id, business_date, quantity, status)
+  values ('00000000-0000-0000-0000-0000000000a2', public.current_business_date(), 1, 'released');
+insert into public.product_recalls (id, recall_number, reason) values ('00000000-0000-0000-0000-0000000000b6', 'RM-RC-1', 'DEV recall');
+insert into public.product_recall_batches (recall_id, batch_id)
+  values ('00000000-0000-0000-0000-0000000000b6', '00000000-0000-0000-0000-0000000000b5');
+insert into public.operations_exceptions (exception_type, product_id) values ('supply_shortfall', '00000000-0000-0000-0000-0000000000a2');
+
 -- --------------------------------------------------------- read visibility
 -- expected: true = sees rows, false = sees nothing (0 rows or no privilege)
 create temporary table expected (tbl text, label text, visible boolean);
@@ -75,6 +106,17 @@ from (values
   ('rate_limit_counters',         '{}'),
   ('scheduled_job_runs',          '{super_admin}'),
   ('policy_versions',             '{super_admin,operations_admin,finance_admin,dispatch_admin,support_agent,viewer}'),
+  -- Procurement / receiving / inventory (ADR-0012): ops full, finance read.
+  ('purchase_orders',             '{super_admin,operations_admin,finance_admin}'),
+  ('purchase_order_lines',        '{super_admin,operations_admin,finance_admin}'),
+  ('goods_receipts',              '{super_admin,operations_admin,finance_admin}'),
+  ('goods_receipt_lines',         '{super_admin,operations_admin,finance_admin}'),
+  ('product_batches',             '{super_admin,operations_admin,finance_admin}'),
+  ('inventory_movements',         '{super_admin,operations_admin,finance_admin}'),
+  ('inventory_reservations',      '{super_admin,operations_admin,finance_admin}'),
+  ('product_recalls',             '{super_admin,operations_admin,finance_admin}'),
+  ('product_recall_batches',      '{super_admin,operations_admin,finance_admin}'),
+  ('operations_exceptions',       '{super_admin,operations_admin,finance_admin}'),
   -- own row only for these; listed readers can see rows
   ('profiles',                    '{customer}'),
   ('staff_profiles',              '{super_admin,operations_admin,finance_admin,dispatch_admin,support_agent,viewer,rider,inactive_ops,staff_no_role}'),
@@ -147,7 +189,13 @@ cross join (values
   ($$insert into public.sku_price_history (sku_id, price_paise) select id, 1 from public.product_skus limit 1$$),
   ($$insert into public.supply_confirmation_sources (code, label) values ('x_src', 'X')$$),
   ($$truncate public.suppliers cascade$$),
-  ($$truncate public.audit_logs$$)
+  ($$truncate public.audit_logs$$),
+  ($$update public.purchase_orders set status = 'received'$$),
+  ($$insert into public.inventory_movements (batch_id, product_id, movement_type, quantity_delta) values ('00000000-0000-0000-0000-0000000000b5', '00000000-0000-0000-0000-0000000000a2', 'adjustment_increase', 100)$$),
+  ($$update public.product_batches set status = 'active'$$),
+  ($$update public.inventory_reservations set status = 'active'$$),
+  ($$update public.operations_exceptions set status = 'resolved'$$),
+  ($$delete from public.goods_receipt_lines$$)
 ) as w(sql);
 
 create function tests.attempt_write(p_user_id uuid, p_sql text) returns text
