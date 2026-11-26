@@ -26,4 +26,5 @@ Source: `packages/shared/src/api.ts`, `money.ts`, `quantity.ts`, `time.ts`.
 | `GET /api/health` (admin-web liveness)                         | 1     | this README — `data: { status: "ok", service, time }` |
 | `get-catalog`, `get-product-detail`, `health` (Edge Functions) | 3     | [customer-catalog.md](customer-catalog.md)            |
 | Admin RPCs (farmers, supply, staff, reads)                     | 3     | [admin-rpcs.md](admin-rpcs.md)                        |
+| Procurement, receiving, inventory, exceptions RPCs             | 4     | [inventory-rpcs.md](inventory-rpcs.md)                |
 | Remaining customer operations (master §7 table)                | 5–8   | added per phase                                       |

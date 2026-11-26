@@ -11,3 +11,4 @@ docs/specs
 supabase/.temp
 apps/mobile/android
 apps/mobile/ios
+apps/admin-web/e2e/.auth

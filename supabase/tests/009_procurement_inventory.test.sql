@@ -101,6 +101,10 @@ select ok(exists (select 1 from public.audit_logs where entity_type = 'purchase_
                   and entity_id = tests.ctx('po1') ->> 'id' and request_id = 'p4-req-po1' and actor_user_id = tests.uid('ops')),
   'PO creation is audited with actor and request id');
 
+select tests.authenticate_as(tests.uid('viewer'));
+select throws_ok($$select public.admin_create_po_from_supply('00000000-0000-0000-0000-0000000004f1', tests.d())$$,
+  'PT403', null, 'unauthorized callers are refused before supply is read (no information leak)');
+select tests.clear_authentication();
 select tests.authenticate_as(tests.uid('ops'));
 select throws_ok($$select public.admin_create_po_from_supply('00000000-0000-0000-0000-0000000004f1', tests.d())$$,
   'PT422', null, 'no second PO from the same supply');

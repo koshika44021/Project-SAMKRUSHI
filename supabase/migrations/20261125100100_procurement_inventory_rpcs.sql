@@ -209,6 +209,9 @@ as $$
 declare
   v_lines jsonb;
 begin
+  -- Authorize BEFORE reading supply, so unauthorized callers learn nothing
+  -- about a farmer's open supply from the error they get.
+  perform private.begin_admin_action(array['super_admin', 'operations_admin']::public.app_role[], p_request_id, 'purchase order created');
   select coalesce(jsonb_agg(jsonb_build_object(
            'productId', c.product_id, 'quantity', trim_scale(c.quantity)::text, 'supplyConfirmationId', c.id)
            order by p.display_order, p.name), '[]'::jsonb)

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/primitives';
 import { requireStaff } from '@/lib/auth/session';
 import { resolveBusinessDate } from '@/lib/server/business-date';
+import { procurementWidgetsSchema } from '@/lib/server/inventory-schemas';
 import { overviewSchema } from '@/lib/server/rpc-schemas';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -48,8 +49,12 @@ export default async function OverviewPage({
   const { selected, today } = resolveBusinessDate(date);
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc('dashboard_overview', { p_business_date: selected });
+  const [{ data, error }, widgets] = await Promise.all([
+    supabase.rpc('dashboard_overview', { p_business_date: selected }),
+    supabase.rpc('dashboard_procurement_widgets'),
+  ]);
   const parsed = overviewSchema.safeParse(data);
+  const inventory = procurementWidgetsSchema.safeParse(widgets.data);
 
   return (
     <>
@@ -57,6 +62,43 @@ export default async function OverviewPage({
         title="Overview"
         description={`Farmer-confirmed supply for ${formatBusinessDate(selected)}.`}
       />
+      {inventory.success && inventory.data.inventoryWidgets ? (
+        <div
+          className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5"
+          data-testid="inventory-widgets"
+        >
+          <Kpi
+            testId="kpi-pos-awaiting"
+            label="POs awaiting receipt"
+            value={inventory.data.posAwaitingReceipt}
+            definition="Purchase orders sent or partially received."
+          />
+          <Kpi
+            testId="kpi-draft-receipts"
+            label="Draft receipts"
+            value={inventory.data.draftReceipts}
+            definition="Recorded but not posted; not yet stock."
+          />
+          <Kpi
+            testId="kpi-held-batches"
+            label="Batches on hold"
+            value={inventory.data.heldBatches}
+            definition="Held stock is never available."
+          />
+          <Kpi
+            testId="kpi-recalled-batches"
+            label="Recalled batches"
+            value={inventory.data.recalledBatches}
+            definition="Kept for traceability; never available."
+          />
+          <Kpi
+            testId="kpi-open-exceptions"
+            label="Open exceptions"
+            value={inventory.data.openExceptions}
+            definition="Shortfalls, returned reservations and over-receipts to resolve."
+          />
+        </div>
+      ) : null}
       <BusinessDatePicker selected={selected} today={today} />
       {error || !parsed.success ? (
         <Alert tone="danger" title="The overview could not be loaded.">
@@ -171,8 +213,8 @@ export default async function OverviewPage({
             )}
           </Card>
           <p className="text-xs text-slate-500">
-            Figures are farmer-confirmed supply (a planning signal), not warehouse stock. Units are
-            never combined across products.
+            Sellable quantity = active stock on hand + open farmer-confirmed supply − reservations
+            (no double counting once supply is received). Units are never combined across products.
           </p>
         </div>
       )}

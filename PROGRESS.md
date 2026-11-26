@@ -2,22 +2,22 @@
 
 > **Agents:** read this file first, then `AGENTS.md`. Update it after every task (tick the box, add a changelog line, refresh "Next actions"). If you stop mid-task, record the exact state under "In progress".
 
-**Branch:** `release-m1-2027.1` · **Last updated:** 2026-11-24 · **Current phase:** 3 completion items, then 4 — Procurement & inventory (**in progress**, approved by user 2026-11-25)
+**Branch:** `release-m1-2027.1` · **Last updated:** 2026-11-26 · **Current phase:** 4 — Procurement & inventory **done**. Phase 5 (customer browse and cart) **awaits user approval**
 
 ## Phase status (master spec §10)
 
-| Phase | Deliverable                                                                             | State           | Commit    |
-| ----- | --------------------------------------------------------------------------------------- | --------------- | --------- |
-| 0     | Repository inspection and plan                                                          | Done            | —         |
-| 1     | Monorepo foundation (pnpm/Turborepo, Node 24, Next.js, Expo, shared package, CI)        | Done            | `7e3dbfc` |
-| 2     | Database and security (8 migrations, RLS, 592 pgTAP tests, generated types)             | Done            | `c16b52b` |
-| 3     | Admin MVP: staff auth, farmers, catalog seed, dated supply, audit, customer catalog API | **In progress** | —         |
-| 4     | Procurement and inventory                                                               | Not started     | —         |
-| 5     | Customer browse and cart (mobile)                                                       | Not started     | —         |
-| 6     | Checkout and payments (Razorpay Hosted Checkout first)                                  | Not started     | —         |
-| 7     | Fulfilment, dispatch, rider OTP                                                         | Not started     | —         |
-| 8     | Customer orders and support                                                             | Not started     | —         |
-| 9     | Production hardening and Android store release                                          | Not started     | —         |
+| Phase | Deliverable                                                                             | State       | Commit                           |
+| ----- | --------------------------------------------------------------------------------------- | ----------- | -------------------------------- |
+| 0     | Repository inspection and plan                                                          | Done        | —                                |
+| 1     | Monorepo foundation (pnpm/Turborepo, Node 24, Next.js, Expo, shared package, CI)        | Done        | `7e3dbfc`                        |
+| 2     | Database and security (8 migrations, RLS, 592 pgTAP tests, generated types)             | Done        | `c16b52b`                        |
+| 3     | Admin MVP: staff auth, farmers, catalog seed, dated supply, audit, customer catalog API | Done        | `a47cf66`                        |
+| 4     | Procurement and inventory                                                               | Done        | `c30074b` + final Phase 4 commit |
+| 5     | Customer browse and cart (mobile)                                                       | Not started | —                                |
+| 6     | Checkout and payments (Razorpay Hosted Checkout first)                                  | Not started | —                                |
+| 7     | Fulfilment, dispatch, rider OTP                                                         | Not started | —                                |
+| 8     | Customer orders and support                                                             | Not started | —                                |
+| 9     | Production hardening and Android store release                                          | Not started | —                                |
 
 ## Phase 3 checklist
 
@@ -67,9 +67,9 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 - [x] 4.2 Migration: RPCs (PO create/from-supply/update/send/cancel/close; receipt create/post/cancel; stock adjust; batch hold/release; recall; resolve exception) + reads; availability core replaced (on-hand + open supply − reservations).
 - [x] 4.3 pgTAP (`009_procurement_inventory.test.sql`, 110 tests; role matrix rows in 002): lifecycle, no stock from PO, partial receipts reconcile, accepted-only batches, no double count (ADR-0007 worked example), reservation re-pointing, hold returns to pool, no negative ATP, concurrency (locks), role matrix rows.
 - [x] 4.4 Shared Zod contracts: `packages/shared/src/inventory.ts` (+ tests); capabilities `viewInventory` / `manageInventory`.
-- [ ] 4.5 admin-web: Procurement, Goods Receiving & Quality, Inventory & Batches, Exceptions pages and nav; overview widgets (POs awaiting receipt, draft receipts, held/recalled batches, open exceptions).
-- [ ] 4.6 Integration + E2E (PO → receipt → batch → availability; rejection; hold; recall).
-- [ ] 4.7 Docs (API contracts, runbooks), tracker, commit.
+- [x] 4.5 admin-web (`app/(dashboard)/procurement|receiving|inventory|exceptions`, shared `_inventory/` actions + forms; receipt evidence route `/receiving/evidence/[id]`): Procurement, Goods Receiving & Quality, Inventory & Batches, Exceptions pages and nav; overview widgets (POs awaiting receipt, draft receipts, held/recalled batches, open exceptions).
+- [x] 4.6 Integration (`tests/integration/src/inventory.test.ts`) + E2E (`apps/admin-web/e2e/inventory.spec.ts`) (PO → receipt → batch → availability; rejection; hold; recall).
+- [x] 4.7 Docs: `docs/api-contracts/inventory-rpcs.md`, `docs/runbooks/inventory.md`, ADR index; tracker; commit.
 
 ## In progress / partially done
 
@@ -77,11 +77,15 @@ Nothing half-done. Known follow-ups, deliberately deferred and tracked:
 
 - The local gateway adds `Access-Control-Allow-Origin: *` to functions. Verify CORS on the hosted project.
 - Supabase-js `.select('*')` on `farmer_profiles` / `supply_confirmations` / `goods_receipt_lines` fails by design (column grants hide private keys). Always list columns.
+- Tests: `SEED-VEG-02` is reserved for inventory tests (posted stock counts for every date). Inventory tests assert relative ATP and recall their batch at the end.
+- `db lint` reports one `warning extra`: the unused `p_zone_id` in `private.product_availability_core`. It has been unused since Phase 1 on purpose; zone validation comes in Phase 5.
 - Scheduling of `sweep-orphan-objects` on the hosted project (pg_cron + pg_net, with `CRON_SECRET`) is a deploy step (see `docs/runbooks/storage.md`).
 
 ## Next actions
 
-1. Phase 4: 4.1–4.4 are done (pgTAP 997 PASS). Next is 4.5, the admin-web pages.
+1. **Wait for user approval of Phase 5** (customer browse and cart on mobile, master §10). Do not start it before approval.
+2. Founder confirmations still open: document number formats (`SAM-PO-`, `SAM-GRN-`, `SAM-B-`, `SAM-RC-` are dev defaults), and the hosted payment domain (Phase 6).
+3. Phase 6 must create reservations only through a function that takes the same per-product/date lock as ATP (ADR-0012 consequences).
 
 ## Environment notes (Windows dev machine)
 
@@ -178,6 +182,13 @@ Last full verification (2026-11-24):
   - pgTAP tests isolate themselves from leftover local data (rolled-back deletes in replica mode).
   - CI: new `integration-e2e` job on the full local stack.
   - Docs: `docs/api-contracts/{customer-catalog,admin-rpcs}.md`, runbooks `super-admin-bootstrap.md` and `storage.md`, updated `local-development.md`, both READMEs.
+
+- **2026-11-26:** Phase 4 done.
+  - **Migrations** `20261125100000–100200` (schema, RPCs, reads). The role check in `admin_create_po_from_supply` was moved before the supply read (no information leak), and a pgTAP test covers it.
+  - **Tests:** pgTAP 009 (role matrix rows for every new table); shared `inventory.ts` contracts with tests; admin-web pages, nav and overview widgets; integration `inventory.test.ts`; E2E `inventory.spec.ts`.
+  - **Docs:** `inventory-rpcs.md`, `runbooks/inventory.md`.
+
+  **pgTAP 998, workspace checks 11/11, integration 22, E2E 27.**
 
 - **2026-11-25/26:** Phase 3 completion:
   - founder answers recorded (business-decisions 17–20, ADR-0012);

@@ -23,6 +23,26 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       label: 'Products & Availability',
       visible: capabilities.viewSupply(session.roles) || capabilities.viewCatalog(session.roles),
     },
+    {
+      href: '/procurement',
+      label: 'Procurement',
+      visible: capabilities.viewInventory(session.roles),
+    },
+    {
+      href: '/receiving',
+      label: 'Goods Receiving & Quality',
+      visible: capabilities.viewInventory(session.roles),
+    },
+    {
+      href: '/inventory',
+      label: 'Inventory & Batches',
+      visible: capabilities.viewInventory(session.roles),
+    },
+    {
+      href: '/exceptions',
+      label: 'Exceptions',
+      visible: capabilities.viewInventory(session.roles),
+    },
     { href: '/staff', label: 'Staff / Users', visible: capabilities.manageStaff(session.roles) },
     { href: '/audit', label: 'Audit History', visible: capabilities.viewAudit(session.roles) },
   ].filter((item) => item.visible);
