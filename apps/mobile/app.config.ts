@@ -111,6 +111,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       'expo-router',
       'expo-dev-client',
+      './plugins/with-short-cxx-dir.js',
       [
         'expo-splash-screen',
         {

@@ -436,8 +436,10 @@ Status as of 2026-11-23. The full, phase-grouped open list with dev-only placeho
 | Exact PIN coverage/zone | Open |
 | Catalog/SKUs/pack sizes/prices/taxes | Open |
 | Cutoff and slot windows/capacity | Open |
-| Supplier rates/terms/quality checks | Open |
-| Supply shortfall handling when accepted receipt is below reserved quantity | **Engineering rule approved** (never oversell, never change an order silently; raise an operations exception per affected order). Customer-facing remedy still open |
+| Supplier rates/terms/quality checks | **Resolved for now — no standard rules** (ADR-0012) |
+| Sell-by/expiry policy | **Resolved for now — none; FIFO by receipt** (ADR-0012) |
+| Packing/fulfilment facility | **Not required for now** (ADR-0012) |
+| Supply shortfall handling when accepted receipt is below reserved quantity | **Resolved** — never oversell; product hidden from the customer app while ATP is zero; affected orders raise an operations exception (ADR-0007) |
 | Reservation allocation order | **Resolved — eligible on-hand batches first (FEFO/FIFO), then the supply pool** (ADR-0007) |
 | Delivery OTP re-viewable by the customer | **Resolved — encrypted storage, same code re-viewable** (ADR-0010) |
 | Customer-facing refund labels | **Resolved** (`docs/business-decisions.md`) |

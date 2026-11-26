@@ -323,7 +323,8 @@ select throws_ok($$truncate public.sku_price_history$$, '42501', null, 'service_
 select throws_ok($$truncate public.policy_versions$$, '42501', null, 'service_role cannot truncate policies');
 select throws_ok($$delete from public.sku_price_history$$, '42501', null, 'service_role cannot delete price history');
 select tests.clear_authentication();
-select throws_ok($$truncate public.supply_confirmations$$, '42501', null, 'even the owner cannot truncate supply (trigger)');
+select ok(tests.sqlstate_of($$truncate public.supply_confirmations$$) in ('42501', '0A000'),
+  'even the owner cannot truncate supply (no-truncate trigger, or FK from PO lines)');
 select throws_ok($$truncate public.suppliers cascade$$, '42501', null, 'even the owner cannot truncate suppliers (trigger)');
 
 select * from finish();

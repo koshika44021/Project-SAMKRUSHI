@@ -254,6 +254,21 @@ export default async function AvailabilityPage({
                       <span className="block text-xs text-slate-500">
                         {formatDateTimeIst(s.confirmedAt)}
                       </span>
+                      {s.hasEvidence ? (
+                        manageSupply ? (
+                          <a
+                            className="text-xs text-brand-700 hover:underline"
+                            href={`/availability/evidence/${s.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`evidence-${s.id}`}
+                          >
+                            View evidence
+                          </a>
+                        ) : (
+                          <span className="block text-xs text-slate-500">Evidence attached</span>
+                        )
+                      ) : null}
                     </Td>
                     <Td>
                       {s.status === 'inactive' ? (

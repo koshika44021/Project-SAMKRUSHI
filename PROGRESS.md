@@ -2,7 +2,7 @@
 
 > **Agents:** read this file first, then `AGENTS.md`. Update it after every task (tick the box, add a changelog line, refresh "Next actions"). If you stop mid-task, record the exact state under "In progress".
 
-**Branch:** `release-m1-2027.1` · **Last updated:** 2026-11-24 · **Current phase:** 3 — Admin MVP (**complete, awaiting user review**)
+**Branch:** `release-m1-2027.1` · **Last updated:** 2026-11-24 · **Current phase:** 3 completion items, then 4 — Procurement & inventory (**in progress**, approved by user 2026-11-25)
 
 ## Phase status (master spec §10)
 
@@ -52,23 +52,41 @@ Scope: master §10 Phase 3, WEB_ADMIN §1.1 MVP deliverables and §19 MVP accept
 - [x] 3.16 Playwright E2E for the WEB_ADMIN §19 MVP acceptance criteria 1–11
 - [x] 3.17 Docs (API contracts, runbooks, README), CI updates, commit
 
+## Phase 3 completion (requested 2026-11-25)
+
+- [x] 3.18 Founder answers recorded: shortfall → product hidden; no procurement/quality rules; no sell-by policy; no packing facility (business-decisions 17–20, ADR-0012).
+- [x] 3.19 Migration `20261125090000_phase3_completion.sql`: `admin_supply_evidence_key`, `scheduled_job_runs`, `storage_orphan_candidates`. pgTAP `008`.
+- [x] 3.20 Supply evidence upload (supply form) and view (`/availability/evidence/[id]`, 60 s signed URL).
+- [x] 3.21 Edge Function `sweep-orphan-objects` (x-cron-secret, dry run, run log). Integration test `jobs.test.ts`.
+- [x] 3.22 Local Android debug build **works** (2026-11-26): `app-debug.apk`. The user upgraded `Sdk\cmake\3.31.1\bin\ninja.exe` to 1.13.2 (long-path aware). Recipe in Environment notes.
+- [x] 3.23 Full verification: pgTAP 711, integration 15, Playwright E2E 24 (incl. evidence), workspace checks 11/11. Committed.
+
+## Phase 4 checklist: procurement & inventory (design: ADR-0012)
+
+- [ ] 4.1 Migration: POs + lines (supply link), receipts + lines (received = accepted + rejected + damaged), batches, append-only movements, reservations schema, recalls + junction, operations exceptions, number generators.
+- [ ] 4.2 Migration: RPCs (PO create/from-supply/update/send/cancel/close; receipt create/post/cancel; stock adjust; batch hold/release; recall; resolve exception) + reads; availability core replaced (on-hand + open supply − reservations).
+- [ ] 4.3 pgTAP: lifecycle, no stock from PO, partial receipts reconcile, accepted-only batches, no double count (ADR-0007 worked example), reservation re-pointing, hold returns to pool, no negative ATP, concurrency (locks), role matrix rows.
+- [ ] 4.4 Shared Zod contracts (procurement, receiving, inventory).
+- [ ] 4.5 admin-web: Procurement, Goods Receiving & Quality, Inventory & Batches, Exceptions pages and nav; overview widgets (POs awaiting receipt, draft receipts, held/recalled batches, open exceptions).
+- [ ] 4.6 Integration + E2E (PO → receipt → batch → availability; rejection; hold; recall).
+- [ ] 4.7 Docs (API contracts, runbooks), tracker, commit.
+
 ## In progress / partially done
 
 Nothing half-done. Known follow-ups, deliberately deferred and tracked:
 
-- Supply evidence upload/view UI. The RPC accepts `p_evidence_storage_key` (bucket `supply-evidence`); there is no viewer RPC yet.
-- Scheduled sweep of orphaned storage objects (master §13.1). Replaced photos are deleted immediately instead.
 - The local gateway adds `Access-Control-Allow-Origin: *` to functions. Verify CORS on the hosted project.
-- Supabase-js `.select('*')` on `farmer_profiles` / `supply_confirmations` fails by design (column grants hide private keys). Always list columns.
+- Supabase-js `.select('*')` on `farmer_profiles` / `supply_confirmations` / `goods_receipt_lines` fails by design (column grants hide private keys). Always list columns.
+- Scheduling of `sweep-orphan-objects` on the hosted project (pg_cron + pg_net, with `CRON_SECRET`) is a deploy step (see `docs/runbooks/storage.md`).
 
 ## Next actions
 
-1. **Wait for the user's Phase 3 review.** Do not start Phase 4 without approval.
-2. Phase 4 (procurement/inventory) needs founder input first: supply shortfall customer remedy, procurement and quality policy, sell-by/expiry policy, packing facility (`docs/business-decisions.md` "Blocks Phase 4").
+1. Phase 4: the schema/RPC/read migrations are drafted (4.1–4.2). Next is the 4.3 pgTAP suite.
 
 ## Environment notes (Windows dev machine)
 
 - **Start Docker Desktop first:** `%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe`. Then `pnpm db:start`.
+- **Shell env helper:** `. /c/Users/c9c4hp/.samkrushi-env.sh`. The shell's `~` is the network drive `Y:` (slow), so keep scratch files under `C:/Users/c9c4hp/skgen`. `/tmp` gets cleaned.
 - Shell PATH helpers (Git Bash):
   ```bash
   export PATH="/c/Users/c9c4hp/AppData/Local/Programs/DockerDesktop/resources/bin:/c/Program Files/Microsoft/jdk-17.0.21.102-hotspot/bin:$PATH"
@@ -76,14 +94,15 @@ Nothing half-done. Known follow-ups, deliberately deferred and tracked:
   export ANDROID_HOME="C:\\Users\\c9c4hp\\AppData\\Local\\Android\\Sdk"
   export JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStoreType=Windows-ROOT"   # corporate TLS proxy (Gradle)
   ```
-- **The local Android native build still fails** after long paths were enabled (2026-11-24):
-  - Error: `react-native-worklets` C++ step, `ninja: manifest 'build.ninja' still dirty after 100 tries`.
-  - Cause: the SDK's CMake 3.22.1 bundles ninja 1.10.2, which is not long-path aware (ninja ≥ 1.12 is), and generated `.cxx` paths reach 288 characters.
-  - Fix options:
-    - (a) Android Studio → SDK Manager → SDK Tools → install a newer CMake (≥ 3.30, bundles ninja ≥ 1.12), then add `cmake.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk/cmake/<version>` to `apps/mobile/android/local.properties`;
-    - (b) build from a short drive letter (`subst S: <repo path>`);
-    - (c) use EAS cloud builds, which are Linux and unaffected.
-  - `expo export` (JS bundle) and `expo prebuild` both work.
+- **Local Android build (works):**
+  ```bash
+  . /c/Users/c9c4hp/.samkrushi-env.sh
+  export SAMKRUSHI_CXX_DIR='C:\cx'          # short CMake staging dir (plugin apps/mobile/plugins/with-short-cxx-dir.js)
+  cd apps/mobile && pnpm exec expo prebuild --platform android --no-install --clean
+  printf 'sdk.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk\ncmake.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk/cmake/3.31.1\n' > android/local.properties
+  cd android && ./gradlew.bat assembleDebug -PreactNativeArchitectures=x86_64   # then ./gradlew.bat --stop
+  ```
+  Requires the ninja ≥ 1.12 inside SDK cmake 3.31.1 (the user installed 1.13.2). Do not run the shell from inside `apps/mobile/android` during prebuild, because Windows locks the folder.
 - For local Android builds, write `apps/mobile/android/local.properties` as `sdk.dir=C:/Users/c9c4hp/AppData/Local/Android/Sdk` (forward slashes). Afterwards run `gradlew --stop`, because Gradle daemons hold a lot of RAM.
 - pnpm runs Node 24.22.3 automatically (`devEngines.runtime`). The machine's default Node is 26; that's fine.
 - Bash heredocs containing non-ASCII characters (₹, ⇔) break in this shell. Write such files with an editor tool instead.
@@ -159,6 +178,16 @@ Last full verification (2026-11-24):
   - pgTAP tests isolate themselves from leftover local data (rolled-back deletes in replica mode).
   - CI: new `integration-e2e` job on the full local stack.
   - Docs: `docs/api-contracts/{customer-catalog,admin-rpcs}.md`, runbooks `super-admin-bootstrap.md` and `storage.md`, updated `local-development.md`, both READMEs.
+
+- **2026-11-25/26:** Phase 3 completion:
+  - founder answers recorded (business-decisions 17–20, ADR-0012);
+  - migration `20261125090000_phase3_completion.sql` (evidence key RPC, `scheduled_job_runs`, `storage_orphan_candidates`);
+  - supply evidence upload + signed-URL view;
+  - Edge Function `sweep-orphan-objects`;
+  - Expo plugin `with-short-cxx-dir.js`; local Android debug APK builds (user upgraded ninja to 1.13.2);
+  - test helper `tests.sqlstate_of`.
+
+  **pgTAP 711, integration 15, E2E 24.**
 
 ## Open founder decisions that affect Phase 3
 

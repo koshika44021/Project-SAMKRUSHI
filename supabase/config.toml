@@ -458,3 +458,9 @@ import_map = "./functions/deno.json"
 enabled = true
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+# Scheduled job (master §13.1). Authorised by the x-cron-secret header only.
+[functions.sweep-orphan-objects]
+enabled = true
+verify_jwt = false
+import_map = "./functions/deno.json"

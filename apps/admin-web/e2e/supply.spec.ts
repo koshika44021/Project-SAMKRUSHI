@@ -36,7 +36,13 @@ async function registerFarmer(page: Page, name: string) {
   farmers.push({ name, code });
 }
 
-async function recordSupply(page: Page, farmerCode: string, quantity: string, unit?: string) {
+async function recordSupply(
+  page: Page,
+  farmerCode: string,
+  quantity: string,
+  unit?: string,
+  withEvidence = false,
+) {
   await page.goto(`/availability/supply/new?date=${businessDate}`);
   const option = page.locator('#supplierId option', { hasText: farmerCode });
   await page
@@ -47,6 +53,11 @@ async function recordSupply(page: Page, farmerCode: string, quantity: string, un
   await page.getByLabel('Quantity').fill(quantity);
   if (unit) await page.getByLabel('Unit').selectOption(unit);
   await page.getByLabel('How was this confirmed?').selectOption({ index: 1 });
+  if (withEvidence) {
+    await page
+      .locator('#evidence')
+      .setInputFiles({ name: 'evidence.png', mimeType: 'image/png', buffer: TINY_PNG });
+  }
   await page.getByRole('button', { name: 'Record supply' }).click();
 }
 
@@ -64,7 +75,7 @@ test('supply from several farmers aggregates per product in its unit', async ({ 
   await registerFarmer(page, `E2E Supply Two ${runId}`);
   const [one, two] = farmers;
 
-  await recordSupply(page, one!.code, '2.5');
+  await recordSupply(page, one!.code, '2.5', undefined, true);
   await expect(page).toHaveURL(/saved=1/);
   // Alternative entry unit: 1500 g is stored exactly as 1.5 kg.
   await recordSupply(page, two!.code, '1500', 'g');
@@ -72,6 +83,14 @@ test('supply from several farmers aggregates per product in its unit', async ({ 
 
   await page.goto(`/availability?date=${businessDate}`);
   await expect(sellable(page)).toHaveText('4 kg');
+
+  // Evidence is private: the link redirects to a short-lived signed image URL.
+  const evidenceLink = page.getByRole('link', { name: 'View evidence' }).first();
+  await expect(evidenceLink).toBeVisible();
+  const href = (await evidenceLink.getAttribute('href')) ?? '';
+  const response = await page.request.get(href);
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/webp');
 });
 
 test('a second active record for the same farmer, product and date is rejected', async ({

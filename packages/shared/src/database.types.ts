@@ -458,6 +458,40 @@ export type Database = {
         };
         Relationships: [];
       };
+      scheduled_job_runs: {
+        Row: {
+          counts: NonNullable<Json>;
+          error: string | null;
+          finished_at: string | null;
+          id: string;
+          job_name: string;
+          request_id: string | null;
+          started_at: string;
+          status: Database['public']['Enums']['job_run_status'];
+        };
+        ComputedFields: never;
+        Insert: {
+          counts?: NonNullable<Json>;
+          error?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          job_name: string;
+          request_id?: string | null;
+          started_at?: string;
+          status?: Database['public']['Enums']['job_run_status'];
+        };
+        Update: {
+          counts?: NonNullable<Json>;
+          error?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          job_name?: string;
+          request_id?: string | null;
+          started_at?: string;
+          status?: Database['public']['Enums']['job_run_status'];
+        };
+        Relationships: [];
+      };
       sku_price_history: {
         Row: {
           changed_by: string | null;
@@ -968,6 +1002,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      admin_supply_evidence_key: { Args: { p_supply_id: string }; Returns: string };
       admin_update_farmer: {
         Args: {
           p_address_line: string;
@@ -1073,6 +1108,14 @@ export type Database = {
           user_id: string;
         }[];
       };
+      storage_orphan_candidates: {
+        Args: { p_grace_seconds: number; p_limit?: number };
+        Returns: {
+          bucket_id: string;
+          created_at: string;
+          object_name: string;
+        }[];
+      };
       supplier_contact_summaries: {
         Args: { p_supplier_ids: string[] };
         Returns: {
@@ -1094,6 +1137,7 @@ export type Database = {
         | 'support_agent'
         | 'rider'
         | 'viewer';
+      job_run_status: 'running' | 'succeeded' | 'failed';
       land_area_unit: 'acre' | 'hectare';
       policy_status: 'draft' | 'published' | 'retired';
       policy_type: 'substitution' | 'cancellation' | 'refund' | 'delivery' | 'privacy' | 'terms';
@@ -1223,6 +1267,7 @@ export const Constants = {
         'rider',
         'viewer',
       ],
+      job_run_status: ['running', 'succeeded', 'failed'],
       land_area_unit: ['acre', 'hectare'],
       policy_status: ['draft', 'published', 'retired'],
       policy_type: ['substitution', 'cancellation', 'refund', 'delivery', 'privacy', 'terms'],

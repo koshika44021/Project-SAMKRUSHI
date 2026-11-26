@@ -93,4 +93,15 @@ begin
 end;
 $$;
 
+-- SQLSTATE raised by a statement ('00000' if it succeeds).
+create function tests.sqlstate_of(p_sql text) returns text
+language plpgsql as $$
+begin
+  execute p_sql;
+  return '00000';
+exception when others then
+  return sqlstate;
+end;
+$$;
+
 grant execute on all functions in schema tests to anon, authenticated, service_role;

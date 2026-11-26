@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { supplyCreateSchema } from '@samkrushi/shared';
+import { PHOTO_UPLOAD_RULES, supplyCreateSchema } from '@samkrushi/shared';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -39,6 +39,7 @@ export function SupplyForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
@@ -71,20 +72,27 @@ export function SupplyForm({
 
   const onSubmit = handleSubmit((values) => {
     setFormError(null);
+    setEvidenceError(null);
     startTransition(async () => {
       const payload = {
         ...values,
         ...(values.entryUnit === product?.baseUnit ? { entryUnit: undefined } : {}),
       };
-      const result = await createSupply(payload);
+      const formData = new FormData();
+      formData.set('payload', JSON.stringify(payload));
+      const evidence = (document.getElementById('evidence') as HTMLInputElement | null)?.files?.[0];
+      if (evidence) formData.set('evidence', evidence);
+      const result = await createSupply(formData);
       if (result.ok) {
         router.push(`/availability?date=${values.businessDate}&saved=1` as Route);
         router.refresh();
         return;
       }
       setFormError(result.error.message);
-      for (const fe of result.error.fieldErrors ?? [])
-        setError(fe.field as keyof Values, { message: fe.message });
+      for (const fe of result.error.fieldErrors ?? []) {
+        if (fe.field === 'evidence') setEvidenceError(fe.message);
+        else setError(fe.field as keyof Values, { message: fe.message });
+      }
     });
   });
 
@@ -185,6 +193,20 @@ export function SupplyForm({
       <p className="text-xs text-slate-500">
         You are recorded as the confirming staff member, with the current time.
       </p>
+      <Field
+        label="Evidence photo (optional)"
+        htmlFor="evidence"
+        error={evidenceError ?? undefined}
+        hint={`JPEG, PNG or WebP up to ${PHOTO_UPLOAD_RULES.maxBytes / (1024 * 1024)} MB, e.g. a photo of the farmer's message. Stored privately.`}
+      >
+        <input
+          id="evidence"
+          name="evidence"
+          type="file"
+          accept={PHOTO_UPLOAD_RULES.allowedMimeTypes.join(',')}
+          className="block text-sm"
+        />
+      </Field>
       <SubmitButton pending={pending}>Record supply</SubmitButton>
     </form>
   );

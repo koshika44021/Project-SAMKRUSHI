@@ -47,6 +47,7 @@ insert into public.supply_confirmations
   from actors where label = 'super_admin';
 
 insert into public.app_settings (key, value, description) values ('dev.example', '1', 'DEV example setting');
+insert into public.scheduled_job_runs (job_name, status, finished_at) values ('dev-job', 'succeeded', now());
 insert into public.policy_versions (policy_type, version_number, title, body_markdown)
   values ('refund', 1, 'DEV refund policy', 'Content pending founder/legal approval');
 
@@ -72,6 +73,7 @@ from (values
   ('audit_logs',                  '{super_admin}'),
   ('app_settings',                '{super_admin}'),
   ('rate_limit_counters',         '{}'),
+  ('scheduled_job_runs',          '{super_admin}'),
   ('policy_versions',             '{super_admin,operations_admin,finance_admin,dispatch_admin,support_agent,viewer}'),
   -- own row only for these; listed readers can see rows
   ('profiles',                    '{customer}'),

@@ -45,7 +45,7 @@ In **one transaction**, posting a goods receipt line linked to dated supply reco
 1. Increases `received_against_record` by the received quantity, which reduces open supply.
 2. Creates the batch and posts a `receipt` movement for the **accepted** quantity only, which increases eligible on-hand.
 3. Moves active pool reservations for (product, business_date) onto the new batch, up to the accepted quantity (FEFO/FIFO order of reservation creation).
-4. Leaves any reservations still not covered (because of rejection or short delivery) as pool reservations, and raises a **shortfall exception** for operations if pool reservations exceed the remaining open supply. ATP is floored at 0. Approved engineering rule: the system never oversells and never changes an order silently; each affected order gets an operations exception. The customer-facing remedy is still an open founder decision.
+4. Leaves any reservations still not covered (because of rejection or short delivery) as pool reservations, and raises a **shortfall exception** for operations if pool reservations exceed the remaining open supply. ATP is floored at 0. Approved engineering rule: the system never oversells and never changes an order silently; each affected order gets an operations exception. Customer-facing remedy (approved 2026-11-25): the product is not shown in the customer app while its ATP is zero; existing affected orders get an operations exception.
 
 When a batch becomes ineligible (hold, recall, expiry), its active reservations move back to the pool in the same transaction, and an exception is raised.
 
@@ -77,7 +77,7 @@ Product "EXAMPLE Produce A", base unit `kg`. SKUs: `EX-A-500G` (pack 0.500 kg) a
 
 - Customers can order before receipt, which matches the business flow. Checkout never oversells, because reservations and ATP share one function and one lock.
 - Phase 3 builds the function with on-hand and reservations at 0. Phase 4 adds batches, receipt links and conversion. Phase 6 adds reservations. The API contract does not change between phases.
-- Operations need a shortfall/exception view (WEB_ADMIN §5, §9) and a founder-approved shortfall policy.
+- Operations need a shortfall/exception view (WEB_ADMIN §5, §9). Customer remedy approved: hide the product while ATP is zero.
 - Tests must cover: multi-supplier sums; zero/expired/inactive exclusion; unit normalization; zone parameter; per-record floor; conversion with rejection; reservation re-pointing; batch hold returning reservations to the pool; concurrent checkouts; the floor at zero.
 
 ## References
